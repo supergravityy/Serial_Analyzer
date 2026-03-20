@@ -1,0 +1,11 @@
+# Visual Studio 빌드 결과물 및 캐시 제외
+.vs/
+Debug/
+Release/
+x64/
+*.user
+*.aps
+*.pdb
+*.ipch
+*.db
+*.opendb
