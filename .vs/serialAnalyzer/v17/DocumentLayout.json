@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\Serial_Analyzer\\serialAnalyzer\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{2BD6422A-1B1B-4221-A467-94C09BEB7D79}|serialAnalyzer\\serialAnalyzer.vcxproj|D:\\Serial_Analyzer\\serialAnalyzer\\serialAnalyzer\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{2BD6422A-1B1B-4221-A467-94C09BEB7D79}|serialAnalyzer\\serialAnalyzer.vcxproj|solutionrelative:serialAnalyzer\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "main.cpp",
+              "DocumentMoniker": "D:\\Serial_Analyzer\\serialAnalyzer\\serialAnalyzer\\main.cpp",
+              "RelativeDocumentMoniker": "serialAnalyzer\\main.cpp",
+              "ToolTip": "D:\\Serial_Analyzer\\serialAnalyzer\\serialAnalyzer\\main.cpp",
+              "RelativeToolTip": "serialAnalyzer\\main.cpp",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-03-20T04:45:38.04Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
