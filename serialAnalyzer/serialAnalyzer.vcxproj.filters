@@ -22,6 +22,12 @@
     <Filter Include="소스 파일\implot">
       <UniqueIdentifier>{f98f4a18-0b4b-4f65-a624-53e58425886e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\app">
+      <UniqueIdentifier>{ba178b9e-abf2-4228-816c-36caa5520340}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\serial">
+      <UniqueIdentifier>{2decf171-eec4-4eb1-b425-083306490d53}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui_src\imgui.cpp">
@@ -49,7 +55,7 @@
       <Filter>소스 파일\implot</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>소스 파일\app</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
