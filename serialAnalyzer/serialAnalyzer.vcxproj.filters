@@ -89,5 +89,8 @@
     <ClInclude Include="imgui_src\imstb_textedit.h">
       <Filter>소스 파일\imgui</Filter>
     </ClInclude>
+    <ClInclude Include="appData.h">
+      <Filter>소스 파일\app</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

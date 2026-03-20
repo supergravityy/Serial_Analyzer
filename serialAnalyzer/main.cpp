@@ -1,4 +1,5 @@
-#pragma comment(linker, "/entry:mainCRTStartup")
+// 원래 windows gui 프로그램은 wina main으로 시작해야 함 -> 표준 main으로 시작하게 해주는 설정
+#pragma comment(linker, "/entry:mainCRTStartup") 
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
@@ -28,17 +29,17 @@ struct ScrollingBuffer {
     }
 };
 
-static ScrollingBuffer sdata;
-static std::vector<std::string> logs;
+static ScrollingBuffer sdata;           // 실시간 데이터 저장용 링버퍼
+static std::vector<std::string> logs;   // 시스템로그 저장소 (시리얼로 받은 문자열이나 시스템 상태 메시지를 화면에 리스트 형태로 보여주기 위해 필요)
 static char tx_buffer[256] = "";
 static int x_axis_range = 5;
-static float t = 0;
+static float elapsed_time = 0;
 
 // DirectX 관련 설정 (이전과 동일)
-static ID3D11Device* g_pd3dDevice = NULL;
-static ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
-static IDXGISwapChain* g_pSwapChain = NULL;
-static ID3D11RenderTargetView* g_mainRenderTargetView = NULL;
+static ID3D11Device* g_pd3dDevice = NULL;                       // 텍스처나 버퍼 같은 그래픽 자원을 '생성'할 때 쓰임
+static ID3D11DeviceContext* g_pd3dDeviceContext = NULL;         // Dx11에게 화면 그리기/지우기 명령을 내릴때 쓰임
+static IDXGISwapChain* g_pSwapChain = NULL;                     // 뒤에서 그린 화면(예비화면)을 교체해서 보여주는 화면전환기
+static ID3D11RenderTargetView* g_mainRenderTargetView = NULL;   // 실제 화면이 그려지는 객체
 
 bool CreateDeviceD3D(HWND hWnd);
 void CleanupDeviceD3D();
@@ -49,18 +50,22 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 // [Main 함수 시작]
 int main(int, char**)
 {
+    // 윈도우에서 프로그램을 띄우기 위해선 창의 '속성'을 정의해야 한다.
     WNDCLASSEXW wc = { sizeof(WNDCLASSEXW), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, L"SerialAnalyzer", NULL };
     ::RegisterClassExW(&wc);
     HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Serial Analyzer", WS_OVERLAPPEDWINDOW, 100, 100, 736, 519, NULL, NULL, wc.hInstance, NULL);
 
+    // Dx11 그래픽 엔진 가동
     if (!CreateDeviceD3D(hwnd)) { CleanupDeviceD3D(); return 1; }
     ::ShowWindow(hwnd, SW_SHOWDEFAULT);
     ::UpdateWindow(hwnd);
 
+    // imgui가 윈도우 창 wc와 dx11을 위에서 동작하게 서로 연결해주는 과정
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImPlot::CreateContext();
+    ImGui::CreateContext();     // 그래픽을 위한 메모리공간 확보
+    ImPlot::CreateContext();    // 그래프를 위한 메모리공간 확보
 
+    // 백엔드와 핸드쉐이크 하는과정
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 
@@ -68,49 +73,70 @@ int main(int, char**)
     while (!done)
     {
         MSG msg;
+        // 윈도우는 사용자가 X를 누르거나 키보드를 치는 행동을 '메시지'형태로 전달함 -> 이거 처리 X시 응답없음이 뜨는 것
         while (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE)) {
             ::TranslateMessage(&msg); ::DispatchMessage(&msg);
             if (msg.message == WM_QUIT) done = true;
         }
         if (done) break;
 
-        // [2. 가짜 데이터 생성: 1초에 60번 실행됨]
-        t += ImGui::GetIO().DeltaTime;
-        float fake_val = sinf(t) * 10.0f + 50.0f;
-        sdata.AddPoint(t, fake_val);
+        // 가짜 데이터 생성: imgui가 보장해주는 fps로 실행됨
+        elapsed_time += ImGui::GetIO().DeltaTime; // 프레임 간격의 시간 계산
+        float fake_val = sinf(elapsed_time) * 10.0f + 50.0f;
+        sdata.AddPoint(elapsed_time, fake_val);
 
+        // 프레임 시작
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        // [3. 레이아웃 시작]
+        // GUI 레이아웃 시작 -> GUI 창 정보 설정 후 메인대쉬보드(창) 설정 확정
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGui::SetNextWindowSize(ImVec2(720, 480));
         ImGui::Begin("MainDash", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 
         // 왼쪽: U1(로그) + U2(입력)
         ImGui::BeginChild("Left", ImVec2(ImGui::GetContentRegionAvail().x * 0.4f, 0), true);
+        // 차일드 : 크기 컨테이너 -> 스크롤이 독립적으로 주어짐
+        // 파라미터 :  ID, ImVec2(끝위치), 테두리 출력 여부
+        // GetContentRegionAvail -> 부모 창에서 쓸 수 있는 크기 정보, 0 -> 다쓰겠다
+        // 크기인데 시작 이 없는 이유? -> ImGui는 "자동 배치(Auto-layout)" 시스템 
+        // -> 시작점 : BeginChild를 호출하는 순간, 이전에 그려진 객체 바로 다음 위치(커서 위치)가 자동으로 시작점이 됨
+        // , 끝점 : 우리가 준 **가로/세로 길이(Size)**만큼 시작점에서 더해진 지점이 자동으로 끝점
         ImGui::TextColored(ImVec4(0, 1, 1, 1), "U1: Rx Log");
+
         ImGui::BeginChild("Log", ImVec2(0, -70), true);
+        // Log는 Left의 차일드임, ImVec2(부모의 가로 다 쓰겠다, -70 바닥에서 70픽셀만큼은 비우고 나머지 다씀)
         for (auto& l : logs) ImGui::TextUnformatted(l.c_str());
-        if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) ImGui::SetScrollHereY(1.0f);
+        // 로그는 아래에서 위로 올라가는 형태
+        // 사용자가 현재 마우스로 가장 최신 줄을 보고 있는 중인가?(가장 최신 -> 바닥보고 있음) 
+        if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) ImGui::SetScrollHereY(1.0f); // SetScrollHereY -> 비율(100%)로 강제이동
         ImGui::EndChild();
+        // ##Tx는 Left의 위젯(부품), ## 붙이는 건 id는 유지하되 글자는 출력이 안되게, 
+        // ImGuiInputTextFlags_EnterReturnsTrue -> 엔터를 쳤을때만 참으로 만들게끔 해줌
         if (ImGui::InputText("##Tx", tx_buffer, 256, ImGuiInputTextFlags_EnterReturnsTrue)) {
             logs.push_back("[TX]: " + std::string(tx_buffer));
-            tx_buffer[0] = '\0';
-            ImGui::SetKeyboardFocusHere(-1);
+            tx_buffer[0] = '\0'; // memset같은 기능, 꼼수
+            ImGui::SetKeyboardFocusHere(-1);  // 커서 깜빡
         }
-        ImGui::EndChild();
+        ImGui::EndChild(); 
 
-        ImGui::SameLine();
+        // 지금 Left를 만들어서 다음 줄은 480 이후(짤려서 안보임)이기에 Left와 똑같은 y좌표에 쓰겠다는 뜻
+        ImGui::SameLine(); 
 
         // 오른쪽: U3(그래프) + U4/U5
+        // 여러 개의 위젯을 하나의 커다란 부품(덩어리)처럼 묶어라
         ImGui::BeginGroup();
 
+
         ImGui::BeginChild("U3", ImVec2(0, 280), true);
-        if (ImPlot::BeginPlot("##Plot", ImVec2(-1, -1))) {
-            ImPlot::SetupAxes("Time", "Value", 0, 0);
-            ImPlot::SetupAxisLimits(ImAxis_X1, t - (float)x_axis_range, t, ImGuiCond_Always);
+        if (ImPlot::BeginPlot("##Plot", ImVec2(-1, -1))) // 그래프 위젯 생성 및 크기(-1,-1)-> 다쓰겠다
+        {
+            ImPlot::SetupAxes("Time", "Value", 0, 0); // x축 이름, y축 이름 -> 전부 기본설정 사용
+            // X축이 보여줄 데이터의 범위를 강제로 지정
+            // ImAxis_X1(기본 X축 제어), 재 시간에서 사용자가 설정한 범위(예: 5초)를 뺀 지점부터 보여줌, 끝점, 매프레임마다 강제적용 설정
+            ImPlot::SetupAxisLimits(ImAxis_X1, elapsed_time - (float)x_axis_range, elapsed_time, ImGuiCond_Always);
+            // 범위 고정
             ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 100);
 
             if (sdata.Data.size() > 0) {
@@ -120,6 +146,7 @@ int main(int, char**)
                 y_data.reserve(sdata.Data.size());
 
                 // 2. 시간 순서대로(Offset부터 끝까지, 그다음 처음부터 Offset까지) 분리해서 담습니다.
+                // 링큐이기에. offset이 가장 최신데이터, 그 다음 인덱스가 가장 오래된 데이터
                 for (int i = sdata.Offset; i < (int)sdata.Data.size(); ++i) {
                     x_data.push_back(sdata.Data[i].x);
                     y_data.push_back(sdata.Data[i].y);
@@ -135,7 +162,6 @@ int main(int, char**)
             ImPlot::EndPlot();
         }
         ImGui::EndChild();
-        //ImGui::EndChild();
 
         ImGui::BeginChild("U4U5", ImVec2(0, 0), true);
         ImGui::Text("U5: Graph Config");
