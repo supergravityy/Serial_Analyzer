@@ -9,11 +9,13 @@
 #include <string>
 #include <math.h>
 
-// [1. 데이터 및 실시간 버퍼 설정]
+// 데이터 설정
 struct ScrollingBuffer {
     int MaxSize;
     int Offset;
     std::vector<ImVec2> Data;
+
+    // functions 001 : 
     ScrollingBuffer(int max_size = 2000) {
         MaxSize = max_size;
         Offset = 0;
@@ -50,21 +52,25 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 // [Main 함수 시작]
 int main(int, char**)
 {
+    // functions 002 : 
     // 윈도우에서 프로그램을 띄우기 위해선 창의 '속성'을 정의해야 한다.
     WNDCLASSEXW wc = { sizeof(WNDCLASSEXW), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, L"SerialAnalyzer", NULL };
     ::RegisterClassExW(&wc);
     HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Serial Analyzer", WS_OVERLAPPEDWINDOW, 100, 100, 736, 519, NULL, NULL, wc.hInstance, NULL);
 
+    // functions 003 : 
     // Dx11 그래픽 엔진 가동
     if (!CreateDeviceD3D(hwnd)) { CleanupDeviceD3D(); return 1; }
     ::ShowWindow(hwnd, SW_SHOWDEFAULT);
     ::UpdateWindow(hwnd);
 
+    // functions 004 : 
     // imgui가 윈도우 창 wc와 dx11을 위에서 동작하게 서로 연결해주는 과정
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();     // 그래픽을 위한 메모리공간 확보
     ImPlot::CreateContext();    // 그래프를 위한 메모리공간 확보
 
+    // functions 005 : 
     // 백엔드와 핸드쉐이크 하는과정
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
@@ -73,6 +79,7 @@ int main(int, char**)
     while (!done)
     {
         MSG msg;
+        // functions 006 : 
         // 윈도우는 사용자가 X를 누르거나 키보드를 치는 행동을 '메시지'형태로 전달함 -> 이거 처리 X시 응답없음이 뜨는 것
         while (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE)) {
             ::TranslateMessage(&msg); ::DispatchMessage(&msg);
@@ -80,21 +87,25 @@ int main(int, char**)
         }
         if (done) break;
 
+        // functions 007 : 
         // 가짜 데이터 생성: imgui가 보장해주는 fps로 실행됨
         elapsed_time += ImGui::GetIO().DeltaTime; // 프레임 간격의 시간 계산
         float fake_val = sinf(elapsed_time) * 10.0f + 50.0f;
         sdata.AddPoint(elapsed_time, fake_val);
 
+        // functions 008 : 
         // 프레임 시작
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-
+        
+        // functions 009 : 
         // GUI 레이아웃 시작 -> GUI 창 정보 설정 후 메인대쉬보드(창) 설정 확정
         ImGui::SetNextWindowPos(ImVec2(0, 0));
         ImGui::SetNextWindowSize(ImVec2(720, 480));
         ImGui::Begin("MainDash", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 
+        // functions 010 : 
         // 왼쪽: U1(로그) + U2(입력)
         ImGui::BeginChild("Left", ImVec2(ImGui::GetContentRegionAvail().x * 0.4f, 0), true);
         // 차일드 : 크기 컨테이너 -> 스크롤이 독립적으로 주어짐
@@ -105,6 +116,7 @@ int main(int, char**)
         // , 끝점 : 우리가 준 **가로/세로 길이(Size)**만큼 시작점에서 더해진 지점이 자동으로 끝점
         ImGui::TextColored(ImVec4(0, 1, 1, 1), "U1: Rx Log");
 
+        // functions 011 : 
         ImGui::BeginChild("Log", ImVec2(0, -70), true);
         // Log는 Left의 차일드임, ImVec2(부모의 가로 다 쓰겠다, -70 바닥에서 70픽셀만큼은 비우고 나머지 다씀)
         for (auto& l : logs) ImGui::TextUnformatted(l.c_str());
@@ -112,6 +124,8 @@ int main(int, char**)
         // 사용자가 현재 마우스로 가장 최신 줄을 보고 있는 중인가?(가장 최신 -> 바닥보고 있음) 
         if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) ImGui::SetScrollHereY(1.0f); // SetScrollHereY -> 비율(100%)로 강제이동
         ImGui::EndChild();
+
+        // functions 012 : 
         // ##Tx는 Left의 위젯(부품), ## 붙이는 건 id는 유지하되 글자는 출력이 안되게, 
         // ImGuiInputTextFlags_EnterReturnsTrue -> 엔터를 쳤을때만 참으로 만들게끔 해줌
         if (ImGui::InputText("##Tx", tx_buffer, 256, ImGuiInputTextFlags_EnterReturnsTrue)) {
@@ -121,14 +135,14 @@ int main(int, char**)
         }
         ImGui::EndChild(); 
 
+        // functions 013 : 
         // 지금 Left를 만들어서 다음 줄은 480 이후(짤려서 안보임)이기에 Left와 똑같은 y좌표에 쓰겠다는 뜻
         ImGui::SameLine(); 
-
         // 오른쪽: U3(그래프) + U4/U5
         // 여러 개의 위젯을 하나의 커다란 부품(덩어리)처럼 묶어라
         ImGui::BeginGroup();
 
-
+        // functions 014 : 
         ImGui::BeginChild("U3", ImVec2(0, 280), true);
         if (ImPlot::BeginPlot("##Plot", ImVec2(-1, -1))) // 그래프 위젯 생성 및 크기(-1,-1)-> 다쓰겠다
         {
@@ -139,6 +153,7 @@ int main(int, char**)
             // 범위 고정
             ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 100);
 
+            // functions 015 : 
             if (sdata.Data.size() > 0) {
                 // 1. x값과 y값을 따로 담을 바구니 두 개를 만듭니다.
                 std::vector<float> x_data, y_data;
@@ -163,6 +178,7 @@ int main(int, char**)
         }
         ImGui::EndChild();
 
+        // functions 016 : 
         ImGui::BeginChild("U4U5", ImVec2(0, 0), true);
         ImGui::Text("U5: Graph Config");
         ImGui::SliderInt("X Range", &x_axis_range, 1, 20);
@@ -171,7 +187,8 @@ int main(int, char**)
 
         ImGui::End();
 
-        // [4. 렌더링]
+        // functions 017 : 
+        // 렌더링
         ImGui::Render();
         const float clear_color[4] = { 0.1f, 0.1f, 0.12f, 1.0f };
         g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
@@ -180,13 +197,15 @@ int main(int, char**)
         g_pSwapChain->Present(1, 0);
     }
 
+    // functions 018 : 
     ImPlot::DestroyContext();
     ImGui_ImplDX11_Shutdown(); ImGui_ImplWin32_Shutdown(); ImGui::DestroyContext();
     CleanupDeviceD3D(); ::DestroyWindow(hwnd); ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
     return 0;
 }
 
-// --- 보조 함수 (필수 복사) ---
+// functions 019 :
+/*----------------------------Visualization start----------------------------------------*/
 bool CreateDeviceD3D(HWND hWnd) {
     DXGI_SWAP_CHAIN_DESC sd; ZeroMemory(&sd, sizeof(sd));
     sd.BufferCount = 2; sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -204,3 +223,4 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     if (msg == WM_DESTROY) { ::PostQuitMessage(0); return 0; }
     return ::DefWindowProc(hWnd, msg, wParam, lParam);
 }
+/*----------------------------Visualization end----------------------------------------*/

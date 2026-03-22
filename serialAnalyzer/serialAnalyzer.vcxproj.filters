@@ -54,7 +54,10 @@
     <ClCompile Include="implot_src\implot_items.cpp">
       <Filter>소스 파일\implot</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="app_src\ctrl.cpp">
+      <Filter>소스 파일\app</Filter>
+    </ClCompile>
+    <ClCompile Include="app_src\main.cpp">
       <Filter>소스 파일\app</Filter>
     </ClCompile>
   </ItemGroup>
@@ -89,7 +92,10 @@
     <ClInclude Include="imgui_src\imstb_textedit.h">
       <Filter>소스 파일\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="appData.h">
+    <ClInclude Include="Control.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="app_src\ctrl.h">
       <Filter>소스 파일\app</Filter>
     </ClInclude>
   </ItemGroup>
