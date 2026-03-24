@@ -60,6 +60,9 @@
     <ClCompile Include="app_src\main.cpp">
       <Filter>소스 파일\app</Filter>
     </ClCompile>
+    <ClCompile Include="view.cpp">
+      <Filter>소스 파일\app</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui_src\imgui.h">
@@ -96,6 +99,9 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="app_src\ctrl.h">
+      <Filter>소스 파일\app</Filter>
+    </ClInclude>
+    <ClInclude Include="view.h">
       <Filter>소스 파일\app</Filter>
     </ClInclude>
   </ItemGroup>

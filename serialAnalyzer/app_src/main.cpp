@@ -191,6 +191,7 @@ int main(int, char**)
         // ·»´õ¸µ
         ImGui::Render();
         const float clear_color[4] = { 0.1f, 0.1f, 0.12f, 1.0f };
+
         g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
         g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color);
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

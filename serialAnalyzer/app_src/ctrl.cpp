@@ -18,6 +18,7 @@ analyzerCtrl::analyzerCtrl(unsigned int classStyle, const wchar_t* windowName, c
 	this->width = windowSpec.width;
 	this->height = windowSpec.height;
 
+	this->set_WindowClr(0, 0, 0, 0);
 	this->errCode = CTRL_INIT_ERR_NONE;
 	this->CBproc = nullptr;
 	this->WindowFeatures = { 0 };
@@ -88,6 +89,8 @@ void analyzerCtrl::BeginFrame(void)
 
 void analyzerCtrl::EndFrame(void)
 {
+	ImGui::Render(); // 지금까지 작성된 도면을 최종 확정
+
 	this->pd3dDeviceContext->OMSetRenderTargets(1, &this->mainRenderTargetView, NULL);
 	this->pd3dDeviceContext->ClearRenderTargetView(this->mainRenderTargetView, windowClr);
 

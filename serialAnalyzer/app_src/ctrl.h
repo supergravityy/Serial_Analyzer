@@ -9,12 +9,7 @@
 #define CTRL_WINDOW_NAME_SIZE			(32UL)
 #define CTRL_WINDOW_CLR_BUFF_SIZE		(4UL)
 
-// 시스템 제어 및 로직
-// 생성자: 사용자 정의 변수 입력
-// 시작 : 
-// 소멸자: 모든 그래픽 자원 해제 및 윈도우 파괴.
-
-enum errcode
+enum CTRL_errcode
 {
 	CTRL_INIT_ERR_NONE,
 	CTRL_INIT_ERR_INVALID_SPEC,
@@ -52,7 +47,7 @@ protected:
 	void CleanupRenderTarget(void);
 
 private: // 핵심변수 WNDCLASSEXW wc, HWND hwnd
-	errcode errCode;
+	CTRL_errcode errCode;
 	float windowClr[CTRL_WINDOW_CLR_BUFF_SIZE];
 
 	// WNDCLASSEXW 생성용
