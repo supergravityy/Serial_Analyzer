@@ -3,6 +3,7 @@
 #include <cstring>
 #include "imgui.h"
 #include "implot.h"
+#include "ctrl.h"
 #include "view.h"
 
 analyzerView::analyzerView()
@@ -43,7 +44,7 @@ void analyzerView::set_mainDash_window(ImVec2 mainWindowPos, ImVec2 mainWindowSi
 	this->mainWindow_validData_flg = true;
 }
 
-void analyzerView::layout(void (*CBFunc)(void))
+void analyzerView::layout(void (*CBFunc)(void)) // ctrl의 배경색 설정하기
 {
 	if (CBFunc == nullptr)
 	{
@@ -73,7 +74,7 @@ void analyzerView::childWindow(void (*CBFunc)(void), const char* childID, ImVec2
 		this->errCode = VIEW_RUN_ERR_CHILD_WINDOW_NO_CALLBACK;
 		return;
 	}
-	else if (childID == nullptr || windowSize.x <= 0 || windowSize.y <= 0)
+	else if (childID == nullptr)
 	{
 		this->errCode = VIEW_RUN_ERR_CHILD_WINDOW_INVALID_DATA;
 		return;

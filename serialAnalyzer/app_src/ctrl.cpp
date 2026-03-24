@@ -7,8 +7,6 @@
 #include "imgui.h"
 #include "implot.h"
 
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
 analyzerCtrl::analyzerCtrl(unsigned int classStyle, const wchar_t* windowName, const windowSize_Data windowSpec)
 {
 	this->classStyle = classStyle;
@@ -31,7 +29,7 @@ bool analyzerCtrl::begin(LRESULT(*CBproc)(HWND, UINT, WPARAM, LPARAM))
 
 	this->CBproc = (CBproc != nullptr) ? CBproc : defaultCBproc;
 
-	this->WindowFeatures = { sizeof(WNDCLASSEXW), this->classStyle, CBproc, 0L, 0L,
+	this->WindowFeatures = { sizeof(WNDCLASSEXW), this->classStyle, this->CBproc, 0L, 0L,
 		GetModuleHandle(NULL), NULL, NULL, NULL, NULL, this->classId, NULL };
 
 	::RegisterClassExW(&this->WindowFeatures);
@@ -176,8 +174,14 @@ void analyzerCtrl::CleanupRenderTarget(void)
 // ** 멤버함수로 만들 수 없는 이유 **
 // 실제 멤버 함수는 this 포인터를 무조건 인자로 갖는다 -> 윈도우는 this 포인터가 쓸모 없음 
 // => 그래서 static을 붙여준다
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 static LRESULT defaultCBproc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+		return true;
+
 	switch (msg)
 	{
 	case WM_CLOSE:
