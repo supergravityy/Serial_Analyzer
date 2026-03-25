@@ -11,8 +11,8 @@
 #include "view.h"
 #include "system.h"
 
-#define SYSTEM_VIEW_ERR_OFFSET		(G_ERR_MAIN_WINDOW_INVALID_DATA)
-#define SYSTEM_SYS_ERR_OFFSET		(G_ERR_SERIAL_CANT_CONNECT)
+#define SYSTEM_VIEW_ERR_OFFSET		(G_ERR_INIT_HANDSHAKE_WIN_DX)
+#define SYSTEM_SYS_ERR_OFFSET		(G_ERR_CHILD_WINDOW_INVALID_DATA)
 
 analyzerSys appSystem;
 
@@ -36,11 +36,7 @@ bool analyzerSys::init(void)
 	{
 		tempCode = ctrl.get_errCode();
 
-		if (tempCode == CTRL_INIT_ERR_INVALID_SPEC)
-			this->g_errCode = G_ERR_INIT_INVALID_SPEC;
-		else if (tempCode == CTRL_INIT_ERR_DX11_ON)
-			this->g_errCode = G_ERR_INIT_DX11_ON;
-		else
+		this->g_errCode = (SysErrCode)tempCode;
 
 		return false;
 	}
@@ -57,6 +53,7 @@ bool analyzerSys::init(void)
 
 void analyzerSys::run(void)
 {
+	VIEW_errCode tempCode;
 	while (this->ctrl.stillRunning() == true)
 	{
 		// 1. 데이터 업데이트
@@ -68,7 +65,12 @@ void analyzerSys::run(void)
 		// 3. 레이아웃 렌더링
 		this->view.layout(MainLayout);
 
-		// 4. 화면 출력
+		// 4. 에러코드 업데이트
+		tempCode = this->view.get_errCode();
+		this->g_errCode = (tempCode != VIEW_RUN_ERR_NONE)
+			? (SysErrCode)(tempCode + SYSTEM_VIEW_ERR_OFFSET) : this->g_errCode;
+
+		// 5. 화면 출력
 		this->ctrl.EndFrame();
 	}
 }

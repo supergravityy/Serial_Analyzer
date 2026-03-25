@@ -26,6 +26,7 @@ analyzerCtrl::analyzerCtrl(unsigned int classStyle, const wchar_t* windowName, c
 bool analyzerCtrl::begin(LRESULT(*CBproc)(HWND, UINT, WPARAM, LPARAM))
 {
 	bool result = false;
+	bool winRdy = false, dxRdy = false;
 	DWORD fixedStyle = WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX & ~WS_THICKFRAME;
 
 	this->CBproc = (CBproc != nullptr) ? CBproc : defaultCBproc;
@@ -45,7 +46,7 @@ bool analyzerCtrl::begin(LRESULT(*CBproc)(HWND, UINT, WPARAM, LPARAM))
 		fixedStyle, this->xPos, this->yPos, this->width, this->height, NULL, NULL,
 		this->WindowFeatures.hInstance, NULL);
 
-	if (!this->CreateDeviceD3D(this->WindowHandler)) 
+	if (this->CreateDeviceD3D(this->WindowHandler) == false) 
 	{ 
 		this->CleanupDeviceD3D(); 
 		this->errCode = CTRL_INIT_ERR_DX11_ON;
@@ -56,8 +57,16 @@ bool analyzerCtrl::begin(LRESULT(*CBproc)(HWND, UINT, WPARAM, LPARAM))
 		ImGui::CreateContext();
 		ImPlot::CreateContext();
 
-		ImGui_ImplWin32_Init(this->WindowHandler);
-		ImGui_ImplDX11_Init(this->pd3dDevice, this->pd3dDeviceContext);
+		
+		winRdy = ImGui_ImplWin32_Init(this->WindowHandler);
+		dxRdy = ImGui_ImplDX11_Init(this->pd3dDevice, this->pd3dDeviceContext);
+		
+		if (winRdy == false || dxRdy == false)
+		{
+			this->errCode = CTRL_INIT_ERR_HANDSHAKE_WIN_DX;
+			return result; 
+		}
+			
 
 		::ShowWindow(this->WindowHandler, SW_SHOWDEFAULT);
 		::UpdateWindow(this->WindowHandler);
@@ -160,7 +169,7 @@ void analyzerCtrl::CreateRenderTarget(void)
 	}
 	else
 	{
-		this->errCode = CTRL_RUN_ERR_RENDER_FAIL;
+		// do nothing
 	}
 }
 
