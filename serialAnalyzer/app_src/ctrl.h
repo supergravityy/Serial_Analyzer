@@ -37,8 +37,9 @@ public:
 	void BeginFrame(void);
 	void EndFrame(void);
 	bool stillRunning(void); // 내부에서 PeekMessage 처리 및 종료 확인
+	void set_WindowClr(ImVec4 color);
 	float get_deltaTime(void);
-	void set_WindowClr(float r, float g, float b, float alpha);
+	CTRL_errcode get_errCode(void);
 
 protected:
 	bool CreateDeviceD3D(HWND hWnd);

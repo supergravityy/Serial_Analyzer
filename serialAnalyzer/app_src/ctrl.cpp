@@ -16,7 +16,7 @@ analyzerCtrl::analyzerCtrl(unsigned int classStyle, const wchar_t* windowName, c
 	this->width = windowSpec.width;
 	this->height = windowSpec.height;
 
-	this->set_WindowClr(0, 0, 0, 0);
+	this->set_WindowClr(ImVec4(0,0,0,0));
 	this->errCode = CTRL_INIT_ERR_NONE;
 	this->CBproc = nullptr;
 	this->WindowFeatures = { 0 };
@@ -26,6 +26,7 @@ analyzerCtrl::analyzerCtrl(unsigned int classStyle, const wchar_t* windowName, c
 bool analyzerCtrl::begin(LRESULT(*CBproc)(HWND, UINT, WPARAM, LPARAM))
 {
 	bool result = false;
+	DWORD fixedStyle = WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX & ~WS_THICKFRAME;
 
 	this->CBproc = (CBproc != nullptr) ? CBproc : defaultCBproc;
 
@@ -41,7 +42,7 @@ bool analyzerCtrl::begin(LRESULT(*CBproc)(HWND, UINT, WPARAM, LPARAM))
 	}
 
 	this->WindowHandler = ::CreateWindowW(this->WindowFeatures.lpszClassName, this->windowName,
-		WS_OVERLAPPEDWINDOW, this->xPos, this->yPos, this->width, this->height, NULL, NULL,
+		fixedStyle, this->xPos, this->yPos, this->width, this->height, NULL, NULL,
 		this->WindowFeatures.hInstance, NULL);
 
 	if (!this->CreateDeviceD3D(this->WindowHandler)) 
@@ -112,17 +113,22 @@ bool analyzerCtrl::stillRunning(void)
 	return true; // 계속 실행 중
 }
 
+CTRL_errcode analyzerCtrl::get_errCode(void)
+{
+	return this->errCode;
+}
+
 float analyzerCtrl::get_deltaTime(void)
 {
 	return ImGui::GetIO().DeltaTime;
 }
 
-void analyzerCtrl::set_WindowClr(float r, float g, float b, float alpha)
+void analyzerCtrl::set_WindowClr(ImVec4 color)
 {
-	this->windowClr[0] = r;
-	this->windowClr[1] = g;
-	this->windowClr[2] = b;
-	this->windowClr[3] = alpha;
+	this->windowClr[0] = color.x;
+	this->windowClr[1] = color.y;
+	this->windowClr[2] = color.z;
+	this->windowClr[3] = color.w;
 }
 
 bool analyzerCtrl::CreateDeviceD3D(HWND hWnd)

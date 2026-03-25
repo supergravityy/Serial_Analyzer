@@ -102,7 +102,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)imgui_src;$(ProjectDir)imgui_src\backends;$(ProjectDir)implot_src;$(ProjectDir)app_src;$(ProjectDir)serial_src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)imgui_src;$(ProjectDir)imgui_src\backends;$(ProjectDir)implot_src;$(ProjectDir)app_src;$(ProjectDir)serial_src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -126,9 +126,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="app_src\config.cpp" />
     <ClCompile Include="app_src\ctrl.cpp" />
     <ClCompile Include="app_src\main.cpp" />
     <ClCompile Include="app_src\model.cpp" />
+    <ClCompile Include="app_src\system.cpp" />
     <ClCompile Include="app_src\view.cpp" />
     <ClCompile Include="imgui_src\backends\imgui_impl_dx11.cpp" />
     <ClCompile Include="imgui_src\backends\imgui_impl_win32.cpp" />
@@ -143,6 +145,7 @@
     <ClInclude Include="app_src\config.h" />
     <ClInclude Include="app_src\ctrl.h" />
     <ClInclude Include="app_src\model.h" />
+    <ClInclude Include="app_src\system.h" />
     <ClInclude Include="app_src\view.h" />
     <ClInclude Include="imgui_src\backends\imgui_impl_dx11.h" />
     <ClInclude Include="imgui_src\backends\imgui_impl_win32.h" />
