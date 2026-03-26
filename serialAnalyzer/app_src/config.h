@@ -13,6 +13,8 @@
 
 #define ANL_SCROLLING_BUFF_SIZE		(2000)
 
+#define TEXT_CLR_RED				(ImVec4(1.0f, 0.4f, 0.4f, 1.0f))
+
 #define DEFAULT_WND_BACK_CLR_RGB	(ImVec4(0.1f, 0.1f, 0.12f, 1.0f))
 #define MAIN_WND_BACK_CLR_RGB		(DEFAULT_WND_BACK_CLR_RGB)
 

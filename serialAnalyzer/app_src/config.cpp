@@ -9,12 +9,67 @@
 #include "model.h"
 #include "system.h"
 
+static void printErrMsg(void)
+{
+	SysErrCode temp = appSystem.get_global_errCode();
+
+	// 에러가 없을 때는 아무것도 출력하지 않음
+	if (temp == G_ERR_NONE) return;
+
+	ImVec4 errCol = TEXT_CLR_RED;
+
+	switch (temp)
+	{
+		// [Ctrl 에러]
+	case G_ERR_INIT_INVALID_SPEC:
+		ImGui::TextColored(errCol, "Err : Invalid Window Specification (Width/Height)");
+		break;
+	case G_ERR_INIT_DX11_ON:
+		ImGui::TextColored(errCol, "Err : DirectX 11 Device Creation Failed");
+		break;
+	case G_ERR_INIT_HANDSHAKE_WIN_DX:
+		ImGui::TextColored(errCol, "Err : Win32-DX11 Backend Handshake Failed");
+		break;
+
+		// [View 에러]
+	case G_ERR_MAIN_WINDOW_INVALID_DATA:
+		ImGui::TextColored(errCol, "Err : Main Dashboard Data is Invalid");
+		break;
+	case G_ERR_MAIN_WINDOW_NO_DATA:
+		ImGui::TextColored(errCol, "Err : No Data for Main Dashboard");
+		break;
+	case G_ERR_MAIN_WINDOW_NO_CALLBACK:
+		ImGui::TextColored(errCol, "Err : Main Layout Callback is Missing");
+		break;
+	case G_ERR_CHILD_WINDOW_NO_CALLBACK:
+		ImGui::TextColored(errCol, "Err : Child Window Callback is Missing");
+		break;
+	case G_ERR_CHILD_WINDOW_INVALID_DATA:
+		ImGui::TextColored(errCol, "Err : Child Window ID or Size is Invalid");
+		break;
+
+		// [System/Serial 에러]
+	case G_ERR_SERIAL_CANT_CONNECT:
+		ImGui::TextColored(errCol, "Err : Serial Port Connection Failed (Check Cable/Port)");
+		break;
+
+	default:
+		ImGui::TextColored(errCol, "Err : Unknown System Error Occurred");
+		break;
+	}
+
+	ImGui::Separator(); // 에러 메시지와 일반 로그 구분을 위한 선
+}
+
 void U1_Log(void)
 {
+	printErrMsg();
+
 	for (auto& l : appSystem.model.get_logs())
 	{
 		ImGui::TextWrapped("%s", l.c_str()); // 자동 줄바꿈 적용
 	}
+
 	// 최신 로그 갱신 자동 스크롤
 	if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
 		ImGui::SetScrollHereY(1.0f);
@@ -25,9 +80,9 @@ void U2_InputText(void)
 	ImGui::PushItemWidth(-1);
 	if (ImGui::InputText("##U2_InputText", appSystem.model.get_txBuffer(), ANL_TX_BUFF_SIZE, ImGuiInputTextFlags_EnterReturnsTrue))
 	{
-		appSystem.model.add_log("TX", appSystem.model.get_txBuffer()); // 모델에 로그 추가
-		appSystem.model.clear_txBuffer();                    // 버퍼 비우기 (tx_buffer[0] = '\0' 역할)
-		ImGui::SetKeyboardFocusHere(-1);           // 커서 유지
+		appSystem.model.add_log("TX", appSystem.model.get_txBuffer());	// 모델에 로그 추가
+		appSystem.model.clear_txBuffer();								// 버퍼 비우기 (tx_buffer[0] = '\0' 역할)
+		ImGui::SetKeyboardFocusHere(-1);								// 커서 유지
 	}
 	ImGui::PopItemWidth();
 }
@@ -123,7 +178,7 @@ void DrawRightPanel(void)
 
 }
 
-// --- 최상위 화면 조립 ---
+// --- 최상위 화면 조립 : 반드시 함수원형은 유지되어야 함---
 void MainLayout(void)
 {
 	appSystem.view.childWindow(DrawLeftPanel, "Left", ImVec2(ImGui::GetContentRegionAvail().x * 0.4f, 0), true);
