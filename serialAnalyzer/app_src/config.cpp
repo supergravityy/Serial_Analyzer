@@ -8,57 +8,60 @@
 #include "view.h"
 #include "model.h"
 #include "system.h"
+#include "serial.h"
 
 static void printErrMsg(void)
 {
 	SysErrCode temp = appSystem.get_global_errCode();
-
-	// 에러가 없을 때는 아무것도 출력하지 않음
 	if (temp == G_ERR_NONE) return;
 
 	ImVec4 errCol = TEXT_CLR_RED;
 
+	// 텍스트 래핑 시작 (현재 창 너비 기준)
+	ImGui::PushTextWrapPos(0.0f);
+
 	switch (temp)
 	{
-		// [Ctrl 에러]
 	case G_ERR_INIT_INVALID_SPEC:
-		ImGui::TextColored(errCol, "Err : Invalid Window Specification (Width/Height)");
+		ImGui::TextColored(errCol, "Err : [Control] Invalid Window Specification (Width/Height)");
 		break;
 	case G_ERR_INIT_DX11_ON:
-		ImGui::TextColored(errCol, "Err : DirectX 11 Device Creation Failed");
+		ImGui::TextColored(errCol, "Err : [Control] DirectX 11 Device Creation Failed");
 		break;
 	case G_ERR_INIT_HANDSHAKE_WIN_DX:
-		ImGui::TextColored(errCol, "Err : Win32-DX11 Backend Handshake Failed");
+		ImGui::TextColored(errCol, "Err : [Control] Win32-DX11 Backend Handshake Failed");
 		break;
-
-		// [View 에러]
 	case G_ERR_MAIN_WINDOW_INVALID_DATA:
-		ImGui::TextColored(errCol, "Err : Main Dashboard Data is Invalid");
-		break;
-	case G_ERR_MAIN_WINDOW_NO_DATA:
-		ImGui::TextColored(errCol, "Err : No Data for Main Dashboard");
+		ImGui::TextColored(errCol, "Err : [View] Main Dashboard Data is Invalid");
 		break;
 	case G_ERR_MAIN_WINDOW_NO_CALLBACK:
-		ImGui::TextColored(errCol, "Err : Main Layout Callback is Missing");
+		ImGui::TextColored(errCol, "Err : [View] Main Layout Callback is Missing");
 		break;
 	case G_ERR_CHILD_WINDOW_NO_CALLBACK:
-		ImGui::TextColored(errCol, "Err : Child Window Callback is Missing");
+		ImGui::TextColored(errCol, "Err : [View] Child Window Callback is Missing");
 		break;
 	case G_ERR_CHILD_WINDOW_INVALID_DATA:
-		ImGui::TextColored(errCol, "Err : Child Window ID or Size is Invalid");
+		ImGui::TextColored(errCol, "Err : [View] Child Window ID or Size is Invalid");
 		break;
-
-		// [System/Serial 에러]
-	case G_ERR_SERIAL_CANT_CONNECT:
-		ImGui::TextColored(errCol, "Err : Serial Port Connection Failed (Check Cable/Port)");
+	case G_ERR_SERIAL_INIT_INVALID_SPEC:
+		ImGui::TextColored(errCol, "Err : [Serial] Invalid Configuration (Baud/Parity/Stop)");
 		break;
-
+	case G_ERR_SERIAL_INIT_CANT_OPEN:
+		ImGui::TextColored(errCol, "Err : [Serial] Port Open Failed (Check Cable/Port)");
+		break;
+	case G_ERR_SERIAL_RUN_COMM_FAIL:
+		ImGui::TextColored(errCol, "Err : [Serial] Communication Parameter Setup Failed");
+		break;
+	case G_ERR_SERIAL_RUN_READ_FAIL:
+		ImGui::TextColored(errCol, "Err : [Serial] Data Read Failed (Hardware Disconnected?)");
+		break;
 	default:
-		ImGui::TextColored(errCol, "Err : Unknown System Error Occurred");
+		ImGui::TextColored(errCol, "Err : Unknown System Error (Code: %d)", (int)temp);
 		break;
 	}
 
-	ImGui::Separator(); // 에러 메시지와 일반 로그 구분을 위한 선
+	ImGui::PopTextWrapPos(); // 래핑 종료
+	ImGui::Separator();
 }
 
 void U1_Log(void)
@@ -140,42 +143,133 @@ void U3_Graph(void)
 
 void U4_SelDomain(void)
 {
-	ImGui::TextColored(ImVec4(1, 1, 0, 1), "U4: Domain List"); // todo : 나중에 색깔을 전부 imVec 디파인문으로 지정하면 더 쓰기 쉬울듯
-	ImGui::Separator(); // 구분선 -> 노션의 ---
+	ImGui::TextColored(ImVec4(1, 1, 0, 1), "U4: Domain & Control");
+	ImGui::Separator();
 
-	// todo : 추후 모델에서 도메인 리스트를 받아와서 버튼으로 생성할 자리
-	if (ImGui::Button("Domain: Motor_Speed")) { /* 그래프 데이터 교체 로직 */ }
-	if (ImGui::Button("Domain: Phase_Current")) { /* 그래프 데이터 교체 로직 */ }
+	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+	ImGui::SliderInt("XRange", appSystem.model.get_xAxisRange_ptr(), 1, 10); 
+	ImGui::Spacing();
+
+	ImGui::Text("Detected Domains:");
+
+	// 높이를 -35 정도로 설정하여 하단 Reset 버튼 자리를 확보하고 나머지는 스크롤 가능하게 함
+	ImGui::BeginChild("DomainList", ImVec2(0, -25), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+
+	// 테스트용 버튼 반복 생성 (스크롤 확인용)
+	for (int i = 0; i < 10; i++) {
+		char label[32];
+        sprintf_s(label, sizeof(label), "Domain: Sample_%d", i);
+		if (ImGui::Button(label, ImVec2(-1, 0))) { /* 선택 로직 */ }
+	}
+
+	ImGui::EndChild();
+
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
+	if (ImGui::Button("Reset All Data", ImVec2(-1, 0))) {
+		appSystem.model.clear_graphData();
+		appSystem.model.get_logs().clear();
+		appSystem.model.add_log("SYS", "All data has been reset.");
+	}
+	ImGui::PopStyleColor();
 }
 
 void U5_configSerial(void)
 {
+	// --- 1. UI 내부 상태 관리를 위한 정적 변수 ---
+	static std::vector<std::string> portList;
+	static int selPortIdx = 0;
+	static int selDataIdx = 3;  // 기본 8-bit (리스트의 4번째)
+	static int selStopIdx = 0;  // 기본 1-stop
+	static int selParityIdx = 0; // 기본 None
+	static char baudBuf[16] = "115200"; // 보드레이트 입력용 버퍼
+	static float lastScanTime = 0;
+
 	ImGui::TextColored(ImVec4(1, 1, 0, 1), "U5: Serial Config");
 	ImGui::Separator();
 
-	// 그래프 X축 조절 (기존 기능)
-	ImGui::SliderInt("X Range", appSystem.model.get_xAxisRange_ptr(), 1, 20);
+	// 2초마다 포트 리스트 동적 스캔
+	if (ImGui::GetTime() - lastScanTime > 2.0f || portList.empty()) {
+		portList = analyzerSerial::get_ports();
+		lastScanTime = (float)ImGui::GetTime();
+	}
 
-	// 보드레이트 설정
-	ImGui::Text("Baudrate: 115200");
+	// --- 2. 연결 상태에 따른 인터락(Interlock) 설정 ---
+	bool isConnected = appSystem.serial.is_opened();
 
-	// 시리얼 포트 연결 로직
-	if (ImGui::Button("Connect")) { /* 시리얼 연결 로직 */ }
+	if (isConnected) ImGui::BeginDisabled(); // 연결 중이면 모든 설정창 잠금
+
+	// A. 포트 이름 (Combo)
+	const char* portPreview = (portList.empty()) ? "N/A" : portList[selPortIdx].c_str();
+	if (ImGui::BeginCombo("Port", portPreview)) {
+		for (int i = 0; i < (int)portList.size(); i++) {
+			if (ImGui::Selectable(portList[i].c_str(), selPortIdx == i)) selPortIdx = i;
+		}
+		ImGui::EndCombo();
+	}
+
+	// B. 보드레이트 (InputText) - 숫자만 입력받도록 설정
+	ImGui::InputText("Baudrate", baudBuf, IM_ARRAYSIZE(baudBuf), ImGuiInputTextFlags_CharsDecimal);
+
+	// C. 데이터 비트 (Combo: 5, 6, 7, 8)
+	const char* dataBits[] = { "5", "6", "7", "8" };
+	ImGui::Combo("DataBits", &selDataIdx, dataBits, IM_ARRAYSIZE(dataBits));
+
+	// D. 스톱 비트 (Combo: 1, 2)
+	const char* stopBits[] = { "1", "2" };
+	ImGui::Combo("StopBits", &selStopIdx, stopBits, IM_ARRAYSIZE(stopBits));
+
+	// E. 패리티 비트 (Combo: None, Odd, Even, Mark, Space)
+	const char* parityItems[] = { "None", "Odd", "Even" };
+	ImGui::Combo("Parity", &selParityIdx, parityItems, IM_ARRAYSIZE(parityItems));
+	
+	if (isConnected) ImGui::EndDisabled(); // 잠금 해제
+
+	ImGui::Spacing();
+
+	// --- 3. Connect / Disconnect 버튼 로직 ---
+	if (!isConnected)
+	{
+		// [Connect 버튼]
+		if (ImGui::Button("Connect", ImVec2(-1, 30))) {
+			if (!portList.empty()) {
+				unsigned int baud = (unsigned int)atoi(baudBuf);
+				unsigned int data = (unsigned int)atoi(dataBits[selDataIdx]);
+				unsigned int stop = (unsigned int)atoi(stopBits[selStopIdx]);
+				unsigned int parity = (unsigned int)selParityIdx;
+
+				// 실제 연결 시도
+				if (appSystem.serial.open(portList[selPortIdx].c_str(), baud, data, stop, parity)) {
+					appSystem.model.add_log("SYS", "Serial Port Connected.");
+				}
+				else {
+					// 실패 시 에러는 이미 serial.errCode에 담겨있으므로 U1에서 출력됨
+				}
+			}
+		}
+	}
+	else
+	{
+		// [Disconnect 버튼]
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f)); // 빨간색 버튼
+		if (ImGui::Button("Disconnect", ImVec2(-1, 30))) {
+			appSystem.serial.close();
+			appSystem.model.add_log("SYS", "Serial Port Disconnected.");
+		}
+		ImGui::PopStyleColor();
+	}
 }
 
 void DrawRightPanel(void)
 {
-	// U3, 그래프 
-	appSystem.view.childWindow(U3_Graph, "U3_Graph", ImVec2(0, 280), true);
+	// U3 그래프 높이를 280 -> 220으로 축소하여 U5의 스크롤을 방지함
+	appSystem.view.childWindow(U3_Graph, "U3_Graph", ImVec2(0, 250), true);
 
-	// U4, 도메인 선택 - 오른쪽 영역 절반 사용	
+	// 하단 영역 (U4, U5)
 	appSystem.view.childWindow(U4_SelDomain, "U4_selDomain", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, 0), true);
 
-	ImGui::SameLine(); // U4와 U5를 나란히 배치
+	ImGui::SameLine();
 
-	// U5, 시리얼 설정 - 남은 공간 전부 사용
 	appSystem.view.childWindow(U5_configSerial, "U5_config_Serial", ImVec2(0, 0), true);
-
 }
 
 // --- 최상위 화면 조립 : 반드시 함수원형은 유지되어야 함---

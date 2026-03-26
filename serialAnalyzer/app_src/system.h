@@ -7,6 +7,7 @@
 #include "ctrl.h"
 #include "model.h"
 #include "view.h"
+#include "serial.h"
 
 enum SysErrCode {
 	// ctrl 에러
@@ -16,12 +17,14 @@ enum SysErrCode {
 	G_ERR_INIT_HANDSHAKE_WIN_DX,
 	// view 에러
 	G_ERR_MAIN_WINDOW_INVALID_DATA,
-	G_ERR_MAIN_WINDOW_NO_DATA,
 	G_ERR_MAIN_WINDOW_NO_CALLBACK,
 	G_ERR_CHILD_WINDOW_NO_CALLBACK,
 	G_ERR_CHILD_WINDOW_INVALID_DATA,
 	// system 에러
-	G_ERR_SERIAL_CANT_CONNECT
+	G_ERR_SERIAL_INIT_INVALID_SPEC,
+	G_ERR_SERIAL_INIT_CANT_OPEN,
+	G_ERR_SERIAL_RUN_COMM_FAIL,
+	G_ERR_SERIAL_RUN_READ_FAIL
 };
 
 class analyzerSys
@@ -37,7 +40,9 @@ public:
 	analyzerCtrl  ctrl;
 	analyzerModel model;
 	analyzerView  view;
+	analyzerSerial serial;
 private:
+	void update_errcode(void);
 	SysErrCode g_errCode;
 };
 

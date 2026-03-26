@@ -72,6 +72,9 @@
     <ClCompile Include="app_src\view.cpp">
       <Filter>소스 파일\app</Filter>
     </ClCompile>
+    <ClCompile Include="serial.cpp">
+      <Filter>소스 파일\serial</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui_src\imgui.h">
@@ -121,6 +124,9 @@
     </ClInclude>
     <ClInclude Include="app_src\view.h">
       <Filter>소스 파일\app</Filter>
+    </ClInclude>
+    <ClInclude Include="serial.h">
+      <Filter>소스 파일\serial</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

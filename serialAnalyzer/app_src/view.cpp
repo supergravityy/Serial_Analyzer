@@ -51,11 +51,6 @@ void analyzerView::layout(void (*CBFunc)(void)) // ctrl의 배경색 설정하기
 		this->errCode = VIEW_RUN_ERR_MAIN_WINDOW_NO_CALLBACK;
 		return;
 	}
-	else if (this->mainWindow_validData_flg == false)
-	{
-		this->errCode = VIEW_RUN_ERR_MAIN_WINDOW_NO_DATA;
-		return;
-	}
 
 	ImGui::SetNextWindowPos(this->mainWindowPos);
 	ImGui::SetNextWindowSize(this->mainWindowSize);

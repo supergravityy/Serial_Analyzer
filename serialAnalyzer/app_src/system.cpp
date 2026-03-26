@@ -51,9 +51,22 @@ bool analyzerSys::init(void)
 	return true;
 }
 
-void analyzerSys::run(void)
+void analyzerSys::update_errcode(void)
 {
 	VIEW_errCode tempCode;
+	SERIAL_ErrCode tempCode2;
+
+	tempCode = this->view.get_errCode();
+	tempCode2 = this->serial.get_errCode();
+	if (tempCode != VIEW_RUN_ERR_NONE)
+		this->g_errCode = (SysErrCode)(tempCode + SYSTEM_VIEW_ERR_OFFSET);
+	else if (tempCode2 != SERIAL_ERR_NONE)
+		this->g_errCode = (SysErrCode)(tempCode2 + SYSTEM_SYS_ERR_OFFSET);
+	else;
+}
+
+void analyzerSys::run(void)
+{
 	while (this->ctrl.stillRunning() == true)
 	{
 		// 1. 데이터 업데이트
@@ -66,9 +79,7 @@ void analyzerSys::run(void)
 		this->view.layout(MainLayout);
 
 		// 4. 에러코드 업데이트
-		tempCode = this->view.get_errCode();
-		this->g_errCode = (tempCode != VIEW_RUN_ERR_NONE)
-			? (SysErrCode)(tempCode + SYSTEM_VIEW_ERR_OFFSET) : this->g_errCode;
+		this->update_errcode();
 
 		// 5. 화면 출력
 		this->ctrl.EndFrame();
