@@ -2,17 +2,25 @@
 
 #include <vector>
 #include <string>
-#include <math.h>
-#include "config.h"
+#include <map>
 #include "imgui.h"
+#include "config.h"
 
-// 1. 실시간 그래프 데이터를 담을 링 버퍼 구조체
-typedef struct ScrollingBuffer 
+// 1. 실시간 그래프 데이터를 담을 링 버퍼 구조체 (생성자 추가)
+typedef struct ScrollingBuffer
 {
 	int MaxSize;
 	int cursor;
-	std::vector<ImVec2> data; // C++ vector는 메모리 관리상 유지합니다.
-}ScrollingBuffer;
+	std::vector<ImVec2> data;
+
+	// std::map에서 새 항목이 생성될 때 자동으로 호출됨
+	ScrollingBuffer()
+	{
+		MaxSize = ANL_SCROLLING_BUFF_SIZE;
+		cursor = 0;
+		data.reserve(MaxSize);
+	}
+} ScrollingBuffer;
 
 class analyzerModel
 {
@@ -20,10 +28,17 @@ public:
 	analyzerModel();
 	~analyzerModel();
 
-	// --- 그래프 데이터 제어 ---
-	void add_graphData(float x, float y); // (기존 AddPoint 역할)
-	void clear_graphData(void);           // (기존 Erase 역할)
-	ScrollingBuffer& get_graphData(void);
+	// --- 그래프 데이터 제어 (다중 도메인 적용) ---
+	void add_graphData(const std::string& domain, float x, float y);
+	void clear_graphData(void);
+
+	// --- 도메인 관리 및 파싱 ---
+	void parse_teleplot_data(const std::string& raw_data);
+	void get_domain_names(std::vector<std::string>& domainSpace);
+
+	void set_targetDomain(const std::string& domain);
+	std::string get_targetDomain(void);
+	ScrollingBuffer* get_targetBuffer(void); // 현재 그릴 도메인 버퍼 반환
 
 	// --- 로그 데이터 제어 ---
 	void add_log(const char* prefix, const char* msg);
@@ -39,10 +54,14 @@ public:
 	int* get_xAxisRange_ptr(void); // SliderInt 연결용 포인터 반환
 
 	// --- 테스트용 가짜 데이터 생성기 ---
-	void update_data(float dt);
+	void update_fakeData(float dt);
+
 private:
 	// 실제 데이터 보관소
-	ScrollingBuffer sdata;
+	std::map<std::string, ScrollingBuffer> multiData; // 도메인별 분리 저장소
+	std::string targetDomain;                         // 현재 선택된 도메인
+	std::string rx_remainder;                         // 파싱 중 잘린 데이터 보관용
+
 	std::vector<std::string> logs;
 	char tx_buffer[ANL_TX_BUFF_SIZE];
 
@@ -50,4 +69,3 @@ private:
 	float elapsed_time;
 	int x_axis_range;
 };
-

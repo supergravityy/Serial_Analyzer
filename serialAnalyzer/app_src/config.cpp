@@ -15,7 +15,7 @@ static void printErrMsg(void)
 	SysErrCode temp = appSystem.get_global_errCode();
 	if (temp == G_ERR_NONE) return;
 
-	ImVec4 errCol = TEXT_CLR_RED;
+	ImVec4 errCol = ImVec4_COLOR_RED;
 
 	// 텍스트 래핑 시작 (현재 창 너비 기준)
 	ImGui::PushTextWrapPos(0.0f);
@@ -92,7 +92,7 @@ void U2_InputText(void)
 
 void DrawLeftPanel(void)
 {
-	ImGui::TextColored(ImVec4(0, 1, 1, 1), "Log Window");
+	ImGui::TextColored(ImVec4_COLOR_CYAN, "Log Window");
 
 	// U1, 내부 로그 창
 	appSystem.view.childWindow(U1_Log, "U1_Log", ImVec2(0, -50), true);
@@ -106,36 +106,41 @@ void U3_Graph(void)
 	float elapsed_T = appSystem.model.get_elapsedTime();
 	int range = *(appSystem.model.get_xAxisRange_ptr());
 	std::vector<float> x_data, y_data;
-	ScrollingBuffer& sdata = appSystem.model.get_graphData();
+
+	// 1. 모델에서 현재 선택된 도메인의 이름과 버퍼 주소를 가져옴
+	std::string targetDomain = appSystem.model.get_targetDomain();
+	ScrollingBuffer* sdata = appSystem.model.get_targetBuffer();
 
 	if (ImPlot::BeginPlot("##Graph", ImVec2(-1, -1)) == true)
 	{
 		// 1. 그래프 축 설정
 		ImPlot::SetupAxes("Time", "Value", 0, 0);
-
 		ImPlot::SetupAxisLimits(ImAxis_X1, elapsed_T - (float)range, elapsed_T, ImGuiCond_Always);
+
+		// Y축은 필요에 따라 Auto-fit(자동 조절)으로 바꾸셔도 좋습니다. 
+		// 일단 기존 코드대로 0~100으로 유지합니다.
 		ImPlot::SetupAxisLimits(ImAxis_Y1, 0, 100);
 
-		// 2. 데이터 그리기
-		if (sdata.data.size() > 0)
+		// 2. 데이터 그리기 (선택된 도메인이 있고 데이터가 비어있지 않을 때만)
+		if (sdata != nullptr && sdata->data.size() > 0)
 		{
-			// y축, x축 따로 저장
-			x_data.reserve(sdata.data.size());
-			y_data.reserve(sdata.data.size());
+			x_data.reserve(sdata->data.size());
+			y_data.reserve(sdata->data.size());
 
 			// 링 버퍼이기에 cursor 부터 오름차순으로 저장
-			for (int i = sdata.cursor; i < (int)sdata.data.size(); i++)
+			for (int i = sdata->cursor; i < (int)sdata->data.size(); i++)
 			{
-				x_data.push_back(sdata.data[i].x);
-				y_data.push_back(sdata.data[i].y);
+				x_data.push_back(sdata->data[i].x);
+				y_data.push_back(sdata->data[i].y);
 			}
-			for (int i = 0; i < sdata.cursor; i++)
+			for (int i = 0; i < sdata->cursor; i++)
 			{
-				x_data.push_back(sdata.data[i].x);
-				y_data.push_back(sdata.data[i].y);
+				x_data.push_back(sdata->data[i].x);
+				y_data.push_back(sdata->data[i].y);
 			}
-			// todo : "Temperature" 대신 시리얼 데이터에서 받은 id를 활용할 것
-			ImPlot::PlotLine("Temperature", x_data.data(), y_data.data(), (int)x_data.size());
+
+			// 라벨 이름을 하드코딩("Temperature") 대신 실제 도메인 이름으로 출력
+			ImPlot::PlotLine(targetDomain.c_str(), x_data.data(), y_data.data(), (int)x_data.size());
 		}
 		ImPlot::EndPlot();
 	}
@@ -143,31 +148,53 @@ void U3_Graph(void)
 
 void U4_SelDomain(void)
 {
+	std::vector<std::string> domains;
+
 	ImGui::TextColored(ImVec4(1, 1, 0, 1), "U4: Domain & Control");
 	ImGui::Separator();
 
 	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
 	ImGui::SliderInt("XRange", appSystem.model.get_xAxisRange_ptr(), 1, 10); 
+	ImGui::PopItemWidth(); // 누락되었던 Pop 추가 (ImGui 에러 방지)
 	ImGui::Spacing();
 
 	ImGui::Text("Detected Domains:");
 
-	// 높이를 -35 정도로 설정하여 하단 Reset 버튼 자리를 확보하고 나머지는 스크롤 가능하게 함
+	// 높이를 -25 정도로 설정하여 하단 Reset 버튼 자리를 확보하고 나머지는 스크롤 가능하게 함
 	ImGui::BeginChild("DomainList", ImVec2(0, -25), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
 
-	// 테스트용 버튼 반복 생성 (스크롤 확인용)
-	for (int i = 0; i < 10; i++) {
-		char label[32];
-        sprintf_s(label, sizeof(label), "Domain: Sample_%d", i);
-		if (ImGui::Button(label, ImVec2(-1, 0))) { /* 선택 로직 */ }
+	// 1. 모델에서 파싱되어 저장된 모든 도메인 이름 리스트를 가져옴
+	appSystem.model.get_domain_names(domains);
+	std::string currentTarget = appSystem.model.get_targetDomain();
+
+	// 2. 리스트를 순회하며 동적 버튼 생성
+	for (const auto& domain_name : domains) 
+	{
+		// 현재 뷰에 선택된 도메인이면 색상을 다르게(파란색 계열) 칠해서 하이라이트
+		bool is_selected = (domain_name == currentTarget);
+		if (is_selected) 
+		{
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4_COLOR_BLUE);
+		}
+
+		// 버튼을 누르면 해당 도메인을 Target으로 지정함
+		if (ImGui::Button(domain_name.c_str(), ImVec2(-1, 0))) 
+		{
+			appSystem.model.set_targetDomain(domain_name);
+		}
+
+		if (is_selected) 
+		{
+			ImGui::PopStyleColor();
+		}
 	}
 
 	ImGui::EndChild();
 
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4_COLOR_GRAY);
 	if (ImGui::Button("Reset All Data", ImVec2(-1, 0))) {
-		appSystem.model.clear_graphData();
-		appSystem.model.get_logs().clear();
+		appSystem.model.clear_graphData();   // 모든 도메인의 버퍼 내용을 싹 비움
+		appSystem.model.get_logs().clear();  // 로그 비움
 		appSystem.model.add_log("SYS", "All data has been reset.");
 	}
 	ImGui::PopStyleColor();
@@ -250,7 +277,7 @@ void U5_configSerial(void)
 	else
 	{
 		// [Disconnect 버튼]
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f)); // 빨간색 버튼
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4_COLOR_RED); // 빨간색 버튼
 		if (ImGui::Button("Disconnect", ImVec2(-1, 30))) {
 			appSystem.serial.close();
 			appSystem.model.add_log("SYS", "Serial Port Disconnected.");

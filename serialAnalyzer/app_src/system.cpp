@@ -70,8 +70,19 @@ void analyzerSys::run(void)
 	while (this->ctrl.stillRunning() == true)
 	{
 		// 1. 데이터 업데이트
-		this->model.update_data(this->ctrl.get_deltaTime());
+#if(ANL_RUN_MODE == ANL_DEBUG_MODE)
+		this->model.update_fakeData(this->ctrl.get_deltaTime());
+#else
+		std::string rxData = this->serial.readPending();
+		if (!rxData.empty()) 
+		{
+			// 1. 로그창 출력 (선택 사항)
+			this->model.add_log("RX", rxData.c_str());
 
+			// 2. 모델 내부에 파싱 지시 -> 자동으로 맵에 쌓임
+			this->model.parse_teleplot_data(rxData);
+		}
+#endif
 		// 2. 화면 그리기 시작
 		this->ctrl.BeginFrame();
 

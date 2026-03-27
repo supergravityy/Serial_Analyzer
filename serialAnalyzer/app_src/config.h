@@ -13,9 +13,12 @@
 
 #define ANL_SCROLLING_BUFF_SIZE		(2000)
 
-#define TEXT_CLR_RED				(ImVec4(1.0f, 0.4f, 0.4f, 1.0f))
+#define ImVec4_COLOR_RED			(ImVec4(1.0f, 0.4f, 0.4f, 1.0f))
+#define ImVec4_COLOR_BLUE			(ImVec4(0.2f, 0.4f, 0.6f, 1.0f))
+#define ImVec4_COLOR_GRAY			(ImVec4(0.4f, 0.4f, 0.4f, 1.0f))
+#define ImVec4_COLOR_NAVY			(ImVec4(0.1f, 0.1f, 0.12f, 1.0f))
+#define ImVec4_COLOR_CYAN			(ImVec4(0, 1, 1, 1))
 
-#define DEFAULT_WND_BACK_CLR_RGB	(ImVec4(0.1f, 0.1f, 0.12f, 1.0f))
-#define MAIN_WND_BACK_CLR_RGB		(DEFAULT_WND_BACK_CLR_RGB)
+#define MAIN_WND_BACK_CLR_RGB		(ImVec4_COLOR_NAVY)
 
 extern void MainLayout(void);
