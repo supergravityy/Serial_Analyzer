@@ -150,7 +150,7 @@ void U4_SelDomain(void)
 {
 	std::vector<std::string> domains;
 
-	ImGui::TextColored(ImVec4(1, 1, 0, 1), "U4: Domain & Control");
+	ImGui::TextColored(ImVec4_COLOR_YELLOW, "U4: Domain & Control");
 	ImGui::Separator();
 
 	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
@@ -174,7 +174,7 @@ void U4_SelDomain(void)
 		bool is_selected = (domain_name == currentTarget);
 		if (is_selected) 
 		{
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4_COLOR_BLUE);
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4_COLOR_CYAN);
 		}
 
 		// 버튼을 누르면 해당 도메인을 Target으로 지정함
@@ -211,7 +211,7 @@ void U5_configSerial(void)
 	static char baudBuf[16] = "115200"; // 보드레이트 입력용 버퍼
 	static float lastScanTime = 0;
 
-	ImGui::TextColored(ImVec4(1, 1, 0, 1), "U5: Serial Config");
+	ImGui::TextColored(ImVec4_COLOR_YELLOW, "U5: Serial Config");
 	ImGui::Separator();
 
 	// 2초마다 포트 리스트 동적 스캔

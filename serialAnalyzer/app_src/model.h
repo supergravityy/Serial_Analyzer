@@ -54,7 +54,7 @@ public:
 	int* get_xAxisRange_ptr(void); // SliderInt 연결용 포인터 반환
 
 	// --- 테스트용 가짜 데이터 생성기 ---
-	void update_fakeData(float dt);
+	std::string update_fakeData(float dt);
 
 private:
 	// 실제 데이터 보관소

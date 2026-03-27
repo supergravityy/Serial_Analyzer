@@ -91,18 +91,18 @@ void analyzerModel::parse_teleplot_data(const std::string& raw_data)
 
 void analyzerModel::get_domain_names(std::vector<std::string>& domainSpace)
 {
-#if(ANL_RUN_MODE == ANL_SERI_MODE)
+//#if(ANL_RUN_MODE == ANL_SERI_MODE)
 	domainSpace.reserve(this->multiData.size());
 
 	for (const auto& pair : this->multiData)
 	{
 		domainSpace.push_back(pair.first); // 맵의 Key(도메인명) 추출
 	}
-#else
-	domainSpace.push_back("tempDomain01");
-	domainSpace.push_back("tempDomain02");
-	domainSpace.push_back("tempDomain03");
-#endif
+//#else
+//	domainSpace.push_back("tempDomain01");
+//	domainSpace.push_back("tempDomain02");
+//	domainSpace.push_back("tempDomain03");
+//#endif
 }
 
 void analyzerModel::set_targetDomain(const std::string& domain)
@@ -159,16 +159,18 @@ int* analyzerModel::get_xAxisRange_ptr(void) {
 	return &this->x_axis_range;
 }
 
-void analyzerModel::update_fakeData(float dt)
+std::string analyzerModel::update_fakeData(float dt)
 {
 	this->elapsed_time += dt;
 
-#if (ANL_RUN_MODE == ANL_DEBUG_MODE)
 	// 디버그 모드일 때는 가짜 문자열을 파서에 밀어넣어서 테스트해 볼 수 있습니다.
 	float fake_val1 = sinf(this->elapsed_time) * 10.0f + 50.0f;
 	float fake_val2 = cosf(this->elapsed_time) * 10.0f + 50.0f;
 	char fake_str[128];
+	std::string retStr;
 	sprintf_s(fake_str, "Motor_Speed>%.2f\r\nPhase_Current>%.2f\r\n", fake_val1, fake_val2);
-	this->parse_teleplot_data(fake_str);
-#endif
+	
+	retStr.assign(fake_str);
+
+	return retStr;
 }

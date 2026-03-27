@@ -67,13 +67,16 @@ void analyzerSys::update_errcode(void)
 
 void analyzerSys::run(void)
 {
+	std::string rxData;
 	while (this->ctrl.stillRunning() == true)
 	{
 		// 1. 데이터 업데이트
 #if(ANL_RUN_MODE == ANL_DEBUG_MODE)
-		this->model.update_fakeData(this->ctrl.get_deltaTime());
+		rxData = this->model.update_fakeData(this->ctrl.get_deltaTime());
+		this->model.parse_teleplot_data(rxData);
+		this->model.add_log("RX", rxData.c_str());
 #else
-		std::string rxData = this->serial.readPending();
+		rxData = this->serial.readPending();
 		if (!rxData.empty()) 
 		{
 			// 1. 로그창 출력 (선택 사항)

@@ -140,7 +140,7 @@
     <ClCompile Include="imgui_src\imgui_widgets.cpp" />
     <ClCompile Include="implot_src\implot.cpp" />
     <ClCompile Include="implot_src\implot_items.cpp" />
-    <ClCompile Include="serial.cpp" />
+    <ClCompile Include="serial_src\serial.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="app_src\config.h" />
@@ -159,7 +159,7 @@
     <ClInclude Include="implot_src\implot.h" />
     <ClInclude Include="implot_src\implot_internal.h" />
     <ClInclude Include="Control.h" />
-    <ClInclude Include="serial.h" />
+    <ClInclude Include="serial_src\serial.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -72,7 +72,7 @@
     <ClCompile Include="app_src\view.cpp">
       <Filter>소스 파일\app</Filter>
     </ClCompile>
-    <ClCompile Include="serial.cpp">
+    <ClCompile Include="serial_src\serial.cpp">
       <Filter>소스 파일\serial</Filter>
     </ClCompile>
   </ItemGroup>
@@ -125,7 +125,7 @@
     <ClInclude Include="app_src\view.h">
       <Filter>소스 파일\app</Filter>
     </ClInclude>
-    <ClInclude Include="serial.h">
+    <ClInclude Include="serial_src\serial.h">
       <Filter>소스 파일\serial</Filter>
     </ClInclude>
   </ItemGroup>
