@@ -74,6 +74,7 @@ private:
 	std::vector<std::string> csv_history;				// csv 파일 기록용 로그 저장소
 	std::string targetDomain;							// 현재 선택된 도메인
 	std::string rx_remainder;							// 파싱 중 잘린 데이터 보관용
+	ScrollingBuffer* cached_TgtBuff;					// 포인터 캐싱
 
 	std::vector<std::string> logs;
 	char tx_buffer[ANL_TX_BUFF_SIZE];

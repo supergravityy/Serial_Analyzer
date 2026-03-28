@@ -10,6 +10,8 @@
 #include "system.h"
 #include "serial.h"
 
+static bool g_AutoScroll = true;
+
 static void printErrMsg(void)
 {
 	SysErrCode temp = appSystem.get_global_errCode();
@@ -86,16 +88,24 @@ static void printErrMsg(void)
 
 void U1_Log(void)
 {
-	printErrMsg();
+	auto& logs = appSystem.model.get_logs();
+	ImGuiListClipper clipper; // Clipper 적용: 눈에 보이는 부분만 렌더링
 
-	for (auto& l : appSystem.model.get_logs())
+	clipper.Begin((int)logs.size());
+	while (clipper.Step())
 	{
-		ImGui::TextWrapped("%s", l.c_str()); // 자동 줄바꿈 적용
+		for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+		{
+			ImGui::TextWrapped("%s", logs[i].c_str());
+		}
 	}
+	clipper.End();
 
 	// 최신 로그 갱신 자동 스크롤
-	if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+	if (g_AutoScroll == true)
+	{
 		ImGui::SetScrollHereY(1.0f);
+	}
 }
 
 void U2_InputText(void)
@@ -115,8 +125,7 @@ void U6_getCSV(void)
 	static char pathBuf[512] = "./log_data.csv";
 	std::string targetPath, sysLog;
 
-	ImGui::TextDisabled("CSV Export Path:");
-	ImGui::Spacing();
+	ImGui::TextDisabled(".CSV Export Path:");
 	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 80.0f);
 	ImGui::InputText("##Path", pathBuf, IM_ARRAYSIZE(pathBuf));
 	ImGui::PopItemWidth();
@@ -142,7 +151,13 @@ void U6_getCSV(void)
 
 void DrawLeftPanel(void)
 {
+	printErrMsg();
+
 	ImGui::TextColored(ImVec4_COLOR_CYAN, "Log Window");
+	ImGui::SameLine();
+	// 현재 창의 최대 X좌표에서 대략 체크박스 크기(105픽셀)만큼 뺀 위치로 커서 이동
+	ImGui::SetCursorPosX(ImGui::GetWindowContentRegionMax().x - 105.0f);
+	ImGui::Checkbox("Auto-Scroll", &g_AutoScroll);
 
 	// U1, 내부 로그 창
 	appSystem.view.childWindow(U1_Log, "U1_Log", ImVec2(0, -70), true);
@@ -158,7 +173,10 @@ void U3_Graph(void)
 {
 	float elapsed_T = appSystem.model.get_elapsedTime();
 	int range = *(appSystem.model.get_xAxisRange_ptr());
-	std::vector<float> x_data, y_data;
+	static std::vector<float> x_data, y_data;
+
+	x_data.clear();
+	y_data.clear();
 
 	// 1. 모델에서 현재 선택된 도메인의 이름과 버퍼 주소를 가져옴
 	std::string targetDomain = appSystem.model.get_targetDomain();
@@ -201,7 +219,7 @@ void U3_Graph(void)
 
 void U4_SelDomain(void)
 {
-	std::vector<std::string> domains;
+	static std::vector<std::string> domains;
 
 	ImGui::TextColored(ImVec4_COLOR_YELLOW, "U4: Domain & Control");
 	ImGui::Separator();

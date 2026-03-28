@@ -16,6 +16,7 @@ analyzerModel::analyzerModel()
 	this->targetDomain = "";
 	this->rx_remainder = "";
 	this->errCode = MODL_ERR_NONE;
+	this->cached_TgtBuff = nullptr;
 	memset(this->tx_buffer, 0, ANL_TX_BUFF_SIZE);
 }
 
@@ -96,7 +97,7 @@ void analyzerModel::parse_teleplot_data(const std::string& raw_data)
 
 void analyzerModel::get_domain_names(std::vector<std::string>& domainSpace)
 {
-//#if(ANL_RUN_MODE == ANL_SERI_MODE)
+	domainSpace.clear();
 	domainSpace.reserve(this->multiData.size());
 
 	for (const auto& pair : this->multiData)
@@ -108,6 +109,16 @@ void analyzerModel::get_domain_names(std::vector<std::string>& domainSpace)
 void analyzerModel::set_targetDomain(const std::string& domain)
 {
 	this->targetDomain = domain;
+	// µµ¸ÞÀÎÀÌ ¹Ù²ð ¶§ µü ÇÑ ¹ø¸¸ Map Å½»ö ¼öÇà
+	auto it = this->multiData.find(domain);
+	if (it != this->multiData.end()) {
+		this->cached_TgtBuff = &(it->second);
+	}
+	else {
+		this->cached_TgtBuff = nullptr;
+	}
+
+	this->targetDomain = domain;
 }
 
 std::string analyzerModel::get_targetDomain(void)
@@ -117,14 +128,16 @@ std::string analyzerModel::get_targetDomain(void)
 
 ScrollingBuffer* analyzerModel::get_targetBuffer(void)
 {
-	if (this->targetDomain.empty()) return nullptr;
+	/*if (this->targetDomain.empty()) return nullptr;
 
 	auto it = this->multiData.find(this->targetDomain);
 	if (it != this->multiData.end())
 	{
 		return &(it->second);
 	}
-	return nullptr;
+	return nullptr;*/
+
+	return this->cached_TgtBuff;
 }
 
 void analyzerModel::add_log_with_time(float elapsed_time, const std::string& log)
