@@ -178,7 +178,9 @@ void analyzerSerial::close()
 
 SERIAL_ErrCode analyzerSerial::get_errCode(void)
 {
-    return this->errCode;
+    SERIAL_ErrCode temp = this->errCode;
+    this->errCode = SERIAL_ERR_NONE;
+    return temp;
 }
 
 bool analyzerSerial::is_opened(void)

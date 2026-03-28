@@ -98,9 +98,11 @@ int analyzerView::get_childCnt(void)
 	return this->childCnt;
 }
 
-VIEW_errCode analyzerView::get_errCode(void)
+VIEW_errCode analyzerView::get_errCode(void) // 읽음과 동시에 초기화 (Consume)
 {
-	return this->errCode;
+	VIEW_errCode temp = this->errCode;
+	this->errCode = VIEW_RUN_ERR_NONE;
+	return temp;
 }
 
 ImVec2 analyzerView::get_mainWindow_Size(void)

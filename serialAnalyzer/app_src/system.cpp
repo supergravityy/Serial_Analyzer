@@ -21,6 +21,7 @@ analyzerSys::analyzerSys()
 	: ctrl(CS_CLASSDC, L"Serial Analyzer", { 100, 100, 736, 519 })
 {
 	this->g_errCode = G_ERR_NONE;
+	this->err_startTime = 0.0f;
 }
 
 analyzerSys::~analyzerSys()
@@ -57,17 +58,34 @@ void analyzerSys::update_errcode(void)
 	VIEW_errCode tempCode;
 	SERIAL_ErrCode tempCode2;
 	MODEL_errCode tempCode3;
+	float dt;
 
 	tempCode = this->view.get_errCode();
 	tempCode2 = this->serial.get_errCode();
 	tempCode3 = this->model.get_errCode();
-	if (tempCode != VIEW_RUN_ERR_NONE)
+
+	if (tempCode != VIEW_RUN_ERR_NONE) {
 		this->g_errCode = (SysErrCode)(tempCode + SYSTEM_VIEW_ERR_OFFSET);
-	else if (tempCode2 != SERIAL_ERR_NONE)
+		this->err_startTime = ImGui::GetTime();
+	}
+	else if (tempCode2 != SERIAL_ERR_NONE) {
 		this->g_errCode = (SysErrCode)(tempCode2 + SYSTEM_SYS_ERR_OFFSET);
-	else if (tempCode3 != MODL_ERR_NONE)
+		this->err_startTime = ImGui::GetTime();
+	}
+	else if (tempCode3 != MODL_ERR_NONE) {
 		this->g_errCode = (SysErrCode)(tempCode3 + SYSTEM_MDOEL_ERR_OFFSET);
+		this->err_startTime = ImGui::GetTime();
+	}
 	else;
+
+	// 3. 에러가 떠있는 상태이고, 발생한 지 5.0초가 지났다면 글로벌 에러 해제
+	if (this->g_errCode != G_ERR_NONE)
+	{
+		dt = ImGui::GetTime() - this->err_startTime;
+
+		if (dt > 10.0f) 
+			this->g_errCode = G_ERR_NONE;
+	}
 }
 
 void analyzerSys::run(void)

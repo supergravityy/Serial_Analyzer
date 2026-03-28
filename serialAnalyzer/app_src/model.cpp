@@ -128,15 +128,6 @@ std::string analyzerModel::get_targetDomain(void)
 
 ScrollingBuffer* analyzerModel::get_targetBuffer(void)
 {
-	/*if (this->targetDomain.empty()) return nullptr;
-
-	auto it = this->multiData.find(this->targetDomain);
-	if (it != this->multiData.end())
-	{
-		return &(it->second);
-	}
-	return nullptr;*/
-
 	return this->cached_TgtBuff;
 }
 
@@ -252,7 +243,9 @@ int* analyzerModel::get_xAxisRange_ptr(void) {
 }
 
 MODEL_errCode analyzerModel::get_errCode(void) {
-	return this->errCode;
+	MODEL_errCode temp = this->errCode;
+	this->errCode = MODL_ERR_NONE; // 읽음과 동시에 초기화 (Consume)
+	return temp;
 }
 
 std::string analyzerModel::update_fakeData(float dt)

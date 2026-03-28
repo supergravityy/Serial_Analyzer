@@ -122,9 +122,11 @@ bool analyzerCtrl::stillRunning(void)
 	return true; // 계속 실행 중
 }
 
-CTRL_errcode analyzerCtrl::get_errCode(void)
+CTRL_errcode analyzerCtrl::get_errCode(void) // 읽음과 동시에 초기화 (Consume)
 {
-	return this->errCode;
+	CTRL_errcode temp = this->errCode;
+	this->errCode = CTRL_INIT_ERR_NONE;
+	return temp;
 }
 
 float analyzerCtrl::get_deltaTime(void)

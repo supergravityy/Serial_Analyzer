@@ -49,6 +49,7 @@ public:
 private:
 	void update_errcode(void);
 	SysErrCode g_errCode;
+	float err_startTime;
 };
 
 extern analyzerSys appSystem;
