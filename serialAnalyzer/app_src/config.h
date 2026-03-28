@@ -19,6 +19,7 @@
 #define ImVec4_COLOR_NAVY			(ImVec4(0.1f, 0.1f, 0.12f, 1.0f))
 #define ImVec4_COLOR_YELLOW			(ImVec4(1, 1, 0, 1))
 #define ImVec4_COLOR_CYAN			(ImVec4(0, 0.8f, 0.8f, 1.f))
+#define ImVec4_COLOR_GREEN			(ImVec4(0, 0.95f, 0.3f, 1.f))
 
 #define MAIN_WND_BACK_CLR_RGB		(ImVec4_COLOR_NAVY)
 

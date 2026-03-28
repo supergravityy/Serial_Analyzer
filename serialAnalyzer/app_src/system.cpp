@@ -13,6 +13,7 @@
 
 #define SYSTEM_VIEW_ERR_OFFSET		(G_ERR_INIT_HANDSHAKE_WIN_DX)
 #define SYSTEM_SYS_ERR_OFFSET		(G_ERR_CHILD_WINDOW_INVALID_DATA)
+#define SYSTEM_MDOEL_ERR_OFFSET		(G_ERR_SERIAL_RUN_READ_FAIL)
 
 analyzerSys appSystem;
 
@@ -55,13 +56,17 @@ void analyzerSys::update_errcode(void)
 {
 	VIEW_errCode tempCode;
 	SERIAL_ErrCode tempCode2;
+	MODEL_errCode tempCode3;
 
 	tempCode = this->view.get_errCode();
 	tempCode2 = this->serial.get_errCode();
+	tempCode3 = this->model.get_errCode();
 	if (tempCode != VIEW_RUN_ERR_NONE)
 		this->g_errCode = (SysErrCode)(tempCode + SYSTEM_VIEW_ERR_OFFSET);
 	else if (tempCode2 != SERIAL_ERR_NONE)
 		this->g_errCode = (SysErrCode)(tempCode2 + SYSTEM_SYS_ERR_OFFSET);
+	else if (tempCode3 != MODL_ERR_NONE)
+		this->g_errCode = (SysErrCode)(tempCode3 + SYSTEM_MDOEL_ERR_OFFSET);
 	else;
 }
 
@@ -70,11 +75,15 @@ void analyzerSys::run(void)
 	std::string rxData;
 	while (this->ctrl.stillRunning() == true)
 	{
+		float dt = this->ctrl.get_deltaTime();
+		this->model.add_elapsedTime(dt); // 시간 누적
+
 		// 1. 데이터 업데이트
 #if(ANL_RUN_MODE == ANL_DEBUG_MODE)
 		rxData = this->model.update_fakeData(this->ctrl.get_deltaTime());
 		this->model.parse_teleplot_data(rxData);
 		this->model.add_log("RX", rxData.c_str());
+		this->model.add_log_with_time(this->model.get_elapsedTime(), rxData);
 #else
 		rxData = this->serial.readPending();
 		if (!rxData.empty()) 
@@ -82,7 +91,10 @@ void analyzerSys::run(void)
 			// 1. 로그창 출력 (선택 사항)
 			this->model.add_log("RX", rxData.c_str());
 
-			// 2. 모델 내부에 파싱 지시 -> 자동으로 맵에 쌓임
+			// 2. 수신 로그 기록
+			this->model.add_log_with_time(this->model.get_elapsedTime(), rxData);
+
+			// 3. 모델 내부에 파싱 지시 -> 자동으로 맵에 쌓임
 			this->model.parse_teleplot_data(rxData);
 		}
 #endif

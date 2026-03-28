@@ -22,6 +22,7 @@ static void printErrMsg(void)
 
 	switch (temp)
 	{
+		// --- [Control 에러] ---
 	case G_ERR_INIT_INVALID_SPEC:
 		ImGui::TextColored(errCol, "Err : [Control] Invalid Window Specification (Width/Height)");
 		break;
@@ -31,6 +32,8 @@ static void printErrMsg(void)
 	case G_ERR_INIT_HANDSHAKE_WIN_DX:
 		ImGui::TextColored(errCol, "Err : [Control] Win32-DX11 Backend Handshake Failed");
 		break;
+
+		// --- [View 에러] ---
 	case G_ERR_MAIN_WINDOW_INVALID_DATA:
 		ImGui::TextColored(errCol, "Err : [View] Main Dashboard Data is Invalid");
 		break;
@@ -43,6 +46,8 @@ static void printErrMsg(void)
 	case G_ERR_CHILD_WINDOW_INVALID_DATA:
 		ImGui::TextColored(errCol, "Err : [View] Child Window ID or Size is Invalid");
 		break;
+
+		// --- [Serial 에러] ---
 	case G_ERR_SERIAL_INIT_INVALID_SPEC:
 		ImGui::TextColored(errCol, "Err : [Serial] Invalid Configuration (Baud/Parity/Stop)");
 		break;
@@ -55,6 +60,21 @@ static void printErrMsg(void)
 	case G_ERR_SERIAL_RUN_READ_FAIL:
 		ImGui::TextColored(errCol, "Err : [Serial] Data Read Failed (Hardware Disconnected?)");
 		break;
+
+		// --- [Model / CSV Export 에러] ---
+	case G_ERR_MODEL_EXPORT_NO_DATA:
+		ImGui::TextColored(errCol, "Err : [Model] Export Failed: No data in history to save.");
+		break;
+	case G_ERR_MODEL_INVALID_PATH:
+		ImGui::TextColored(errCol, "Err : [Model] Invalid Path: Directory does not exist.");
+		break;
+	case G_ERR_MODEL_CANT_OPEN_FILE:
+		ImGui::TextColored(errCol, "Err : [Model] Access Denied: Cannot create or open file.");
+		break;
+	case G_ERR_MODEL_DISK_NOT_ENOUGH:
+		ImGui::TextColored(errCol, "Err : [Model] Disk Full: Writing failed during export.");
+		break;
+
 	default:
 		ImGui::TextColored(errCol, "Err : Unknown System Error (Code: %d)", (int)temp);
 		break;
@@ -90,15 +110,48 @@ void U2_InputText(void)
 	ImGui::PopItemWidth();
 }
 
+void U6_getCSV(void)
+{
+	static char pathBuf[512] = "./log_data.csv";
+	std::string targetPath, sysLog;
+
+	ImGui::TextDisabled("CSV Export Path:");
+	ImGui::Spacing();
+	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 80.0f);
+	ImGui::InputText("##Path", pathBuf, IM_ARRAYSIZE(pathBuf));
+	ImGui::PopItemWidth();
+
+	ImGui::SameLine();
+
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4_COLOR_GREEN);
+	if (ImGui::Button("Export", ImVec2(72, 0)))
+	{
+		targetPath.assign(pathBuf);
+		
+		appSystem.model.export_csv(targetPath);
+
+		if (appSystem.model.get_errCode() == MODL_ERR_INVALID_PATH)
+		{
+			sysLog = "CSV Exported to:" + targetPath;
+			appSystem.model.add_log("SYS", sysLog.c_str());
+		}
+			
+	}
+	ImGui::PopStyleColor();
+}
+
 void DrawLeftPanel(void)
 {
 	ImGui::TextColored(ImVec4_COLOR_CYAN, "Log Window");
 
 	// U1, 내부 로그 창
-	appSystem.view.childWindow(U1_Log, "U1_Log", ImVec2(0, -50), true);
+	appSystem.view.childWindow(U1_Log, "U1_Log", ImVec2(0, -70), true);
 
 	// U2, 입력창
 	U2_InputText();
+
+	// U6, 로그 저장창
+	U6_getCSV();
 }
 
 void U3_Graph(void)

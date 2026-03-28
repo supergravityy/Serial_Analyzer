@@ -1,9 +1,13 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <fstream>
+#include <filesystem>
 #include "imgui.h"
 #include "config.h"
 #include "model.h"
+
+#define ANL_CSV_BUFF_SIZE		(ANL_TX_BUFF_SIZE)
 
 analyzerModel::analyzerModel()
 {
@@ -11,6 +15,7 @@ analyzerModel::analyzerModel()
 	this->x_axis_range = 5;
 	this->targetDomain = "";
 	this->rx_remainder = "";
+	this->errCode = MODL_ERR_NONE;
 	memset(this->tx_buffer, 0, ANL_TX_BUFF_SIZE);
 }
 
@@ -98,11 +103,6 @@ void analyzerModel::get_domain_names(std::vector<std::string>& domainSpace)
 	{
 		domainSpace.push_back(pair.first); // 맵의 Key(도메인명) 추출
 	}
-//#else
-//	domainSpace.push_back("tempDomain01");
-//	domainSpace.push_back("tempDomain02");
-//	domainSpace.push_back("tempDomain03");
-//#endif
 }
 
 void analyzerModel::set_targetDomain(const std::string& domain)
@@ -127,12 +127,91 @@ ScrollingBuffer* analyzerModel::get_targetBuffer(void)
 	return nullptr;
 }
 
+void analyzerModel::add_log_with_time(float elapsed_time, const std::string& log)
+{
+	// 1. 시간 변환 (elapsed_time은 누적 초 단위)
+	int total_ms = (int)(elapsed_time * 1000);
+	int h = (total_ms / 3600000);
+	int m = (total_ms % 3600000) / 60000;
+	int s = (total_ms % 60000) / 1000;
+	int ms = total_ms % 1000;
+	char time_str[ANL_CSV_BUFF_SIZE];
+	std::string log_with_time;
+
+	sprintf_s(time_str, "%02d:%02d:%02d.%03d", h, m, s, ms);
+
+	// 2. "시간, 데이터" 형태로 한 줄 완성 (CSV 호환을 위해 쉼표 사용)
+	log_with_time = "(" + std::string(time_str) + "), " + log;
+
+	// 3. 기록 (개행 문자가 포함되어 있다면 제거 후 저장)
+	if (!log_with_time.empty() && log_with_time.back() == '\n') log_with_time.pop_back();
+	if (!log_with_time.empty() && log_with_time.back() == '\r') log_with_time.pop_back();
+
+	this->csv_history.push_back(log_with_time);
+}
+
+void analyzerModel::export_csv(const std::string& path)
+{
+	// 1. 저장할 데이터가 있는지 먼저 확인
+	if (this->csv_history.empty()) {
+		this->errCode = MODL_ERR_EXPORT_NO_DATA;
+		return;
+	}
+
+	try {
+		std::filesystem::path p(path);
+
+		// 2. 경로 유효성 검사 (부모 디렉토리가 존재하는지 확인)
+		if (p.has_parent_path() && !std::filesystem::exists(p.parent_path())) {
+			this->errCode = MODL_ERR_INVALID_PATH;
+			return;
+		}
+
+		// 3. 파일 열기 (인자로 받은 path를 직접 사용)
+		std::ofstream file(path);
+
+		if (!file.is_open()) {
+			this->errCode = MODL_ERR_CANT_OPEN_FILE;
+			return;
+		}
+
+		// 4. 데이터 쓰기
+		file << "(Timestamp), RawData\n";
+		for (const auto& line : this->csv_history) 
+		{
+			file << line << "\n";
+
+			// 쓰기 도중 에러 발생 여부 체크 (용량 부족 등)
+			if (file.fail()) {
+				this->errCode = MODL_ERR_DISK_NOT_ENOUGH;
+				file.close();
+				return;
+			}
+		}
+
+		file.close();
+
+		// 5. 성공 로그 출력 (파일명만 추출하여 출력)
+		std::string successMsg = "CSV Exported to: " + p.filename().string();
+		this->add_log("SYS", successMsg.c_str());
+	}
+	catch (const std::exception& e) {
+		// OS 수준의 예외 상황 처리
+		std::string msg = "Export Error: ";
+		msg += e.what();
+		this->add_log("ERR", msg.c_str());
+	}
+}
+
 // ... (이하 로그, Tx버퍼, 상태, 가짜데이터 로직은 이전과 100% 동일) ...
 
 void analyzerModel::add_log(const char* prefix, const char* msg) 
 {
 	std::string log_str = std::string("[") + prefix + "]: " + msg;
 	this->logs.push_back(log_str);
+
+	// Tx 및 시스템 log도 전부 저장
+	this->add_log_with_time(this->get_elapsedTime(), log_str);
 }
 
 std::vector<std::string>& analyzerModel::get_logs(void) {
@@ -157,6 +236,10 @@ float analyzerModel::get_elapsedTime(void) {
 
 int* analyzerModel::get_xAxisRange_ptr(void) {
 	return &this->x_axis_range;
+}
+
+MODEL_errCode analyzerModel::get_errCode(void) {
+	return this->errCode;
 }
 
 std::string analyzerModel::update_fakeData(float dt)
