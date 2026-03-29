@@ -1,6 +1,8 @@
 #include <Windows.h>
 #include <vector>
 #include <string>
+#include <chrono>
+#include <thread>
 #include <algorithm>
 #include "serial.h"
 
@@ -218,9 +220,12 @@ std::string analyzerSerial::readPending()
 void analyzerSerial::rxWorker()
 {
     DWORD bytesRead = 0;
+    long long elapsedTime = 0;
+    this->last_rx_time = std::chrono::steady_clock::now();
 
     while (!this->exitThread)
     {
+        this->current_time = std::chrono::steady_clock::now();
         // ReadFile 시도 (Non-blocking 설정 덕분에 데이터가 없으면 즉시 반환됨)
         if (ReadFile(this->hComm, this->thrd_Buffer, SERIAL_THRD_BUFF_SIZE - 1, &bytesRead, NULL))
         {
@@ -230,12 +235,30 @@ void analyzerSerial::rxWorker()
                 std::lock_guard<std::mutex> lock(this->mtx);
                 this->rxBuffer.append(this->thrd_Buffer, bytesRead);
                 memset(this->thrd_Buffer, 0, SERIAL_THRD_BUFF_SIZE);
+
+                this->last_rx_time = std::chrono::steady_clock::now();
+            }
+            else
+            {
+                elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>
+                    (current_time - last_rx_time).count();
+
+                // 읽기 실패 시 에러 코드 업데이트
+                if (elapsedTime > SERIAL_RX_TIMEOUT_MS)
+                {
+                    // 에러 코드를 타임아웃으로 설정
+                    this->errCode = SERIAL_ERR_RUN_RX_TIMEOUT;
+
+                    // [중요] 타임아웃 에러를 발생시킨 후 타이머를 다시 리셋
+                    // 이렇게 안 하면 1ms마다 무한정 에러를 뿜어내게 됨
+                    last_rx_time = current_time;
+                }
             }
         }
         else
         {
-            // 읽기 실패 시 에러 코드 업데이트
-            this->errCode = SERIAL_ERR_RUN_READ_FAIL;
+            // [치명적 오류] 케이블이 뽑히거나 OS 단에서 포트가 날아감
+            this->errCode = SERIAL_ERR_RUN_RX_FAIL;
         }
 
         // CPU 과부하 방지를 위한 미세 대기 (임베디드 통신 속도 고려)

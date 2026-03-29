@@ -59,8 +59,11 @@ static void printErrMsg(void)
 	case G_ERR_SERIAL_RUN_COMM_FAIL:
 		ImGui::TextColored(errCol, "Err : [Serial] Communication Parameter Setup Failed");
 		break;
-	case G_ERR_SERIAL_RUN_READ_FAIL:
-		ImGui::TextColored(errCol, "Err : [Serial] Data Read Failed (Hardware Disconnected?)");
+	case G_ERR_SERIAL_RUN_RX_FAIL:
+		ImGui::TextColored(errCol, "Err : [Serial] Data Reception Failed (Hardware Disconnected?)");
+		break;
+	case G_ERR_SERIAL_RUN_RX_TIMEOUT:
+		ImGui::TextColored(errCol, "Err : [Serial] Data Read TimeOut (Check your Target device!)");
 		break;
 
 		// --- [Model / CSV Export ¿¡·¯] ---

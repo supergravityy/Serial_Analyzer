@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include "config.h"
 
 #define SERIAL_PARITY_BIT_NONE		(0U)
 #define SERIAL_PARITY_BIT_ODD		(1U)
@@ -12,6 +13,7 @@
 #define SERIAL_PARITY_BIT_MODE		(SERIAL_PARITY_BIT_NONE)
 #define SERIAL_PORTNAME_LEN			(30U)
 #define SERIAL_THRD_BUFF_SIZE		(1024U)
+#define SERIAL_RX_TIMEOUT_MS		(ANL_RX_TIMEOUT_SEC * 1000U)
 
 enum SERIAL_ErrCode
 {
@@ -19,7 +21,8 @@ enum SERIAL_ErrCode
 	SERIAL_ERR_INIT_INVALID_SPEC,
 	SERIAL_ERR_INIT_CANT_OPEN,
 	SERIAL_ERR_RUN_COMM_FAIL,
-	SERIAL_ERR_RUN_READ_FAIL
+	SERIAL_ERR_RUN_RX_FAIL,
+	SERIAL_ERR_RUN_RX_TIMEOUT
 };
 
 class analyzerSerial
@@ -52,6 +55,8 @@ private:
 	unsigned int databit; 
 	unsigned int paritybit;
 	SERIAL_ErrCode errCode;
+	std::chrono::steady_clock::time_point last_rx_time;
+	std::chrono::steady_clock::time_point current_time;
 
 	HANDLE hComm;        // Windows Serial Handle
 	bool isOpened;

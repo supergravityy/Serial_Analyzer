@@ -6,10 +6,8 @@
 #define ANL_SERI_MODE				(1U)
 #define ANL_RUN_MODE				(ANL_SERI_MODE)
 
-#define ANL_TX_BUFF_SIZE			(256)
-
-#define ANL_XAXIS_RANGE_SEC			(5)
-#define ANL_TGT_MSG_PERIOD_MS		(100)
+#define ANL_TX_BUFF_SIZE			(256U)
+#define ANL_RX_TIMEOUT_SEC			(10U)
 
 #define ANL_SCROLLING_BUFF_SIZE		(2000)
 

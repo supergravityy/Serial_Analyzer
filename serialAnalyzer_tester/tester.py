@@ -6,7 +6,7 @@ import threading
 # VSPE로 만든 가상 포트 (Analyzer가 COM17이라면 반대편 포트를 적으세요)
 PORT_NAME = 'COM17' 
 BAUDRATE = 115200
-TIME_UNIT = 0.01 # 10ms
+TIME_UNIT = 0.05 # 50ms
 
 try:
     ser = serial.Serial(PORT_NAME, BAUDRATE, timeout=0.1)

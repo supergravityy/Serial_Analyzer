@@ -13,7 +13,7 @@
 
 #define SYSTEM_VIEW_ERR_OFFSET		(G_ERR_INIT_HANDSHAKE_WIN_DX)
 #define SYSTEM_SYS_ERR_OFFSET		(G_ERR_CHILD_WINDOW_INVALID_DATA)
-#define SYSTEM_MDOEL_ERR_OFFSET		(G_ERR_SERIAL_RUN_READ_FAIL)
+#define SYSTEM_MDOEL_ERR_OFFSET		(G_ERR_SERIAL_RUN_RX_TIMEOUT)
 
 analyzerSys appSystem;
 
@@ -66,22 +66,22 @@ void analyzerSys::update_errcode(void)
 
 	if (tempCode != VIEW_RUN_ERR_NONE) {
 		this->g_errCode = (SysErrCode)(tempCode + SYSTEM_VIEW_ERR_OFFSET);
-		this->err_startTime = ImGui::GetTime();
+		this->err_startTime = (float)ImGui::GetTime();
 	}
 	else if (tempCode2 != SERIAL_ERR_NONE) {
 		this->g_errCode = (SysErrCode)(tempCode2 + SYSTEM_SYS_ERR_OFFSET);
-		this->err_startTime = ImGui::GetTime();
+		this->err_startTime = (float)ImGui::GetTime();
 	}
 	else if (tempCode3 != MODL_ERR_NONE) {
 		this->g_errCode = (SysErrCode)(tempCode3 + SYSTEM_MDOEL_ERR_OFFSET);
-		this->err_startTime = ImGui::GetTime();
+		this->err_startTime = (float)ImGui::GetTime();
 	}
 	else;
 
 	// 3. 에러가 떠있는 상태이고, 발생한 지 5.0초가 지났다면 글로벌 에러 해제
 	if (this->g_errCode != G_ERR_NONE)
 	{
-		dt = ImGui::GetTime() - this->err_startTime;
+		dt = (float)ImGui::GetTime() - this->err_startTime;
 
 		if (dt > 10.0f) 
 			this->g_errCode = G_ERR_NONE;
