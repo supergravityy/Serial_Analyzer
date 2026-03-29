@@ -45,12 +45,9 @@ void analyzerModel::add_graphData(const std::string& domain, float x, float y)
 
 void analyzerModel::clear_graphData(void)
 {
-	// 등록된 모든 도메인의 데이터를 비움
-	for (auto& pair : this->multiData)
-	{
-		pair.second.data.clear();
-		pair.second.cursor = 0;
-	}
+	this->multiData.clear();
+	this->cached_TgtBuff = nullptr;
+	this->targetDomain = ""; // 선택된 도메인 이름도 초기화
 }
 
 // --- 도메인 관리 및 데이터 파서 (핵심) ---
@@ -86,7 +83,7 @@ void analyzerModel::parse_teleplot_data(const std::string& raw_data)
 				value = std::stof(value_str);
 				this->add_graphData(domainName, this->elapsed_time, value);
 			}
-			catch (...) {
+			catch (const std::exception& e) {
 				// stod/stof 에러 발생 시 (쓰레기값 수신) 무시
 			}
 		}

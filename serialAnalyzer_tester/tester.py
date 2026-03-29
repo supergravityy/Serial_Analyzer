@@ -6,6 +6,7 @@ import threading
 # VSPE로 만든 가상 포트 (Analyzer가 COM17이라면 반대편 포트를 적으세요)
 PORT_NAME = 'COM17' 
 BAUDRATE = 115200
+TIME_UNIT = 0.01 # 10ms
 
 try:
     ser = serial.Serial(PORT_NAME, BAUDRATE, timeout=0.1)
@@ -40,10 +41,11 @@ try:
         
         msg = f"Motor_Speed>{motor_speed:.2f}\r\nPhase_Current>{phase_current:.2f}\r\n"
         msg += f"Temperature>{25.0 + 5.0 * math.sin(time_sec / 2.0):.2f}\r\n"
+        msg += "@#$!@#$>\r\n" # 쓰래기 데이터 전송
         ser.write(msg.encode('utf-8'))
         
-        time_sec += 0.05
-        time.sleep(0.05) # 50ms 대기
+        time_sec += TIME_UNIT
+        time.sleep(TIME_UNIT) # 50ms 대기
 
 except KeyboardInterrupt:
     print("\n통신 종료 중...")
