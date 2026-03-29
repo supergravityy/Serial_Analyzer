@@ -4,7 +4,7 @@
 
 #define ANL_DEBUG_MODE				(0U)
 #define ANL_SERI_MODE				(1U)
-#define ANL_RUN_MODE				(ANL_DEBUG_MODE)
+#define ANL_RUN_MODE				(ANL_SERI_MODE)
 
 #define ANL_TX_BUFF_SIZE			(256)
 

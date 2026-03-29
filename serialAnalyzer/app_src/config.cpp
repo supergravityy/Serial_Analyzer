@@ -110,10 +110,18 @@ void U1_Log(void)
 
 void U2_InputText(void)
 {
+	std::string txStr;
 	ImGui::PushItemWidth(-1);
 	if (ImGui::InputText("##U2_InputText", appSystem.model.get_txBuffer(), ANL_TX_BUFF_SIZE, ImGuiInputTextFlags_EnterReturnsTrue))
 	{
+		txStr = appSystem.model.get_txBuffer();							// 입력된 문자열 가져오기
 		appSystem.model.add_log("TX", appSystem.model.get_txBuffer());	// 모델에 로그 추가
+
+		if (appSystem.serial.is_opened()) {
+			txStr += "\r\n"; // MCU 쪽에 줄바꿈 신호 전달
+			appSystem.serial.write(txStr);
+		}
+
 		appSystem.model.clear_txBuffer();								// 버퍼 비우기 (tx_buffer[0] = '\0' 역할)
 		ImGui::SetKeyboardFocusHere(-1);								// 커서 유지
 	}
