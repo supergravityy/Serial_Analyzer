@@ -196,7 +196,7 @@ void analyzerSerial::write(const std::string& data)
 
     DWORD bytesWritten = 0;
     // 동기식 쓰기 수행
-    if (!WriteFile(this->hComm, data.c_str(), (DWORD)data.length(), &bytesWritten, NULL))
+    if (WriteFile(this->hComm, data.c_str(), (DWORD)data.length(), &bytesWritten, NULL) == false)
     {
         this->errCode = SERIAL_ERR_RUN_COMM_FAIL;
     }

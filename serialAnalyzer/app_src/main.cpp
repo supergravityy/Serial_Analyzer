@@ -10,20 +10,13 @@
 #include "model.h"
 #include "system.h"
 
-//// 1. 전역 객체 생성
-//analyzerCtrl  ctrl(CS_CLASSDC, L"Serial Analyzer", { 100, 100, 736, 519 });
-//analyzerModel model;
-//analyzerView  view;
-
 extern analyzerSys appSystem;
 
-// [Main 함수 시작]
 int main(void)
 {
-	// use the global appSystem (defined in system.cpp)
+	
 	if (appSystem.init() == true)
 	{
-		// 3. 무한 루프 가동
 		appSystem.run();
 	}
 

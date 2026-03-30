@@ -28,7 +28,7 @@ static void printErrMsg(void)
 	case G_ERR_INIT_INVALID_SPEC:
 		ImGui::TextColored(errCol, "Err : [Control] Invalid Window Specification (Width/Height)");
 		break;
-	case G_ERR_INIT_DX11_ON:
+	case G_ERR_INIT_DX11_ON_FAIL:
 		ImGui::TextColored(errCol, "Err : [Control] DirectX 11 Device Creation Failed");
 		break;
 	case G_ERR_INIT_HANDSHAKE_WIN_DX:
@@ -133,7 +133,7 @@ void U2_InputText(void)
 
 void U6_getCSV(void)
 {
-	static char pathBuf[512] = "./log_data.csv";
+	static char pathBuf[512] = ANL_CSV_DEFAULT_PATH;
 	std::string targetPath, sysLog;
 
 	ImGui::TextDisabled(".CSV Export Path:");
@@ -232,7 +232,7 @@ void U4_SelDomain(void)
 {
 	static std::vector<std::string> domains;
 
-	ImGui::TextColored(ImVec4_COLOR_YELLOW, "U4: Domain & Control");
+	ImGui::TextColored(ImVec4_COLOR_YELLOW, "Domains & Control");
 	ImGui::Separator();
 
 	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
@@ -275,7 +275,7 @@ void U4_SelDomain(void)
 
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4_COLOR_GRAY);
 	if (ImGui::Button("Reset All Data", ImVec2(-1, 0))) {
-		appSystem.model.clear_graphData();   // 모든 도메인의 버퍼 내용을 싹 비움
+		appSystem.model.clear_graphData();   // 모든 도메인의 버퍼 내용과 도메인 리스트를 싹 비움
 		appSystem.model.get_logs().clear();  // 로그 비움
 		appSystem.model.add_log("SYS", "All data has been reset.");
 	}
@@ -293,7 +293,7 @@ void U5_configSerial(void)
 	static char baudBuf[16] = "115200"; // 보드레이트 입력용 버퍼
 	static float lastScanTime = 0;
 
-	ImGui::TextColored(ImVec4_COLOR_YELLOW, "U5: Serial Config");
+	ImGui::TextColored(ImVec4_COLOR_YELLOW, "Serial Config");
 	ImGui::Separator();
 
 	// 2초마다 포트 리스트 동적 스캔

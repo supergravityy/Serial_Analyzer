@@ -12,7 +12,7 @@
 #include "system.h"
 
 #define SYSTEM_VIEW_ERR_OFFSET		(G_ERR_INIT_HANDSHAKE_WIN_DX)
-#define SYSTEM_SYS_ERR_OFFSET		(G_ERR_CHILD_WINDOW_INVALID_DATA)
+#define SYSTEM_SERI_ERR_OFFSET		(G_ERR_CHILD_WINDOW_INVALID_DATA)
 #define SYSTEM_MDOEL_ERR_OFFSET		(G_ERR_SERIAL_RUN_RX_TIMEOUT)
 
 analyzerSys appSystem;
@@ -69,7 +69,7 @@ void analyzerSys::update_errcode(void)
 		this->err_startTime = (float)ImGui::GetTime();
 	}
 	else if (tempCode2 != SERIAL_ERR_NONE) {
-		this->g_errCode = (SysErrCode)(tempCode2 + SYSTEM_SYS_ERR_OFFSET);
+		this->g_errCode = (SysErrCode)(tempCode2 + SYSTEM_SERI_ERR_OFFSET);
 		this->err_startTime = (float)ImGui::GetTime();
 	}
 	else if (tempCode3 != MODL_ERR_NONE) {
@@ -106,13 +106,10 @@ void analyzerSys::run(void)
 		rxData = this->serial.readPending();
 		if (!rxData.empty()) 
 		{
-			// 1. 로그창 출력 (선택 사항)
+			// 1.1 로그창 출력 (선택 사항)
 			this->model.add_log("RX", rxData.c_str());
 
-			// 2. 수신 로그 기록
-			this->model.add_log_with_time(this->model.get_elapsedTime(), rxData);
-
-			// 3. 모델 내부에 파싱 지시 -> 자동으로 맵에 쌓임
+			// 1.2 모델 내부에 파싱 지시 -> 자동으로 맵에 쌓임
 			this->model.parse_teleplot_data(rxData);
 		}
 #endif
