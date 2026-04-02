@@ -26,7 +26,7 @@ analyzerModel::~analyzerModel()
 	this->clear_graphData(); // 기존 Erase() 호출 대체
 }
 
-// --- 그래프 데이터 제어 (링 버퍼 로직) ---
+// 1. 그래프 데이터 제어 (다중 도메인 적용)
 void analyzerModel::add_graphData(const std::string& domain, float x, float y)
 {
 	// 맵에 해당 도메인이 없으면 ScrollingBuffer 구조체의 생성자가 자동 호출되며 새로 만들어짐
@@ -50,7 +50,7 @@ void analyzerModel::clear_graphData(void)
 	this->targetDomain = ""; // 선택된 도메인 이름도 초기화
 }
 
-// --- 도메인 관리 및 데이터 파서 (핵심) ---
+// 2. 도메인 관리 및 파싱
 void analyzerModel::parse_teleplot_data(const std::string& raw_data)
 {
 	if (raw_data.empty()) return;
@@ -60,24 +60,27 @@ void analyzerModel::parse_teleplot_data(const std::string& raw_data)
 
 	size_t posIdx = 0, sepIdx = 0;
 	size_t next_pos = 0;
-	std::string tempLine = "", domainName = "", value_str = "";
+	std::string singleLine = "", domainName = "", value_str = "";
 	float value = 0;
 
-	// '\n' 기준으로 한 줄씩 추출
+	/*---- 1. 받아온 메시지 뭉텅이에서 '\n' 기준으로 메시지 한 줄씩 추출 ----*/
 	while ((next_pos = this->rx_remainder.find('\n', posIdx)) != std::string::npos)
 	{
-		std::string line = this->rx_remainder.substr(posIdx, next_pos - posIdx);
+		/*---- 2. 메시지 한 줄 전처리 과정 (CRLF 제거) ----*/
+		singleLine.clear();
+
+		singleLine = this->rx_remainder.substr(posIdx, next_pos - posIdx); // 개행 문자 전까지 추출
 		posIdx = next_pos + 1;
 
-		// '\r'이 포함되어 있다면 제거 (Windows/Linux 차이 방지)
-		if (!line.empty() && line.back() == '\r') line.pop_back();
+		if (singleLine.empty() == false && singleLine.back() == '\r')  // '\r'이 포함되어 있다면 해당문자 제거
+			singleLine.pop_back();
 
-		// Teleplot 파싱 로직: ">"를 찾음
-		sepIdx = line.find('>');
+		/*---- 3. Teleplot 파싱 로직: ">"를 찾아서 "도메인 & 상수값" 으로분리 (핵심 파싱 로직) ----*/
+		sepIdx = singleLine.find('>');
 		if (sepIdx != std::string::npos)
 		{
-			domainName = line.substr(0, sepIdx);
-			value_str = line.substr(sepIdx + 1);
+			domainName = singleLine.substr(0, sepIdx);
+			value_str = singleLine.substr(sepIdx + 1);
 
 			try {
 				value = std::stof(value_str);
@@ -103,19 +106,22 @@ void analyzerModel::get_domain_names(std::vector<std::string>& domainSpace)
 	}
 }
 
-void analyzerModel::set_targetDomain(const std::string& domain)
+/*---- 목표 도메인 변경 ----*/
+void analyzerModel::set_targetDomain(const std::string& seldomain) 
 {
-	this->targetDomain = domain;
-	// 도메인이 바뀔 때 딱 한 번만 Map 탐색 수행
-	auto it = this->multiData.find(domain);
-	if (it != this->multiData.end()) {
-		this->cached_TgtBuff = &(it->second);
+	// 도메인이 바뀔 때마다 Map 탐색을 수행하여 포인터 캐싱
+	this->targetDomain = seldomain;
+
+	auto tempDomain = this->multiData.find(seldomain);
+
+	if (tempDomain != this->multiData.end()) {
+		this->cached_TgtBuff = &(tempDomain->second);
 	}
 	else {
 		this->cached_TgtBuff = nullptr;
 	}
 
-	this->targetDomain = domain;
+	this->targetDomain = seldomain;
 }
 
 std::string analyzerModel::get_targetDomain(void)
@@ -128,6 +134,7 @@ ScrollingBuffer* analyzerModel::get_targetBuffer(void)
 	return this->cached_TgtBuff;
 }
 
+/*---- CSV 출력 ----*/
 void analyzerModel::add_log_with_time(float elapsed_time, const std::string& log)
 {
 	// 1. 시간 변환 (elapsed_time은 누적 초 단위)
@@ -151,8 +158,10 @@ void analyzerModel::add_log_with_time(float elapsed_time, const std::string& log
 	this->csv_history.push_back(log_with_time);
 }
 
+/*---- CSV 출력 ----*/
 void analyzerModel::export_csv(const std::string& path)
 {
+	std::string successMsg;
 	// 1. 저장할 데이터가 있는지 먼저 확인
 	if (this->csv_history.empty()) {
 		this->errCode = MODL_ERR_EXPORT_NO_DATA;
@@ -160,40 +169,41 @@ void analyzerModel::export_csv(const std::string& path)
 	}
 
 	try {
-		std::filesystem::path p(path);
+		std::filesystem::path tempPath(path);
 
 		// 2. 경로 유효성 검사 (부모 디렉토리가 존재하는지 확인)
-		if (p.has_parent_path() && !std::filesystem::exists(p.parent_path())) {
+		if (tempPath.has_parent_path() && std::filesystem::exists(tempPath.parent_path()) == false) {
 			this->errCode = MODL_ERR_INVALID_PATH;
 			return;
 		}
 
 		// 3. 파일 열기 (인자로 받은 path를 직접 사용)
-		std::ofstream file(path);
+		std::ofstream filePath(path);
 
-		if (!file.is_open()) {
+		if (!filePath.is_open()) {
 			this->errCode = MODL_ERR_CANT_OPEN_FILE;
 			return;
 		}
 
 		// 4. 데이터 쓰기
-		file << "(Timestamp), RawData\n";
+		filePath << "(Timestamp), RawData\n";
 		for (const auto& line : this->csv_history) 
 		{
-			file << line << "\n";
+			filePath << line << "\n";
 
 			// 쓰기 도중 에러 발생 여부 체크 (용량 부족 등)
-			if (file.fail()) {
+			if (filePath.fail() == true) 
+			{
 				this->errCode = MODL_ERR_DISK_NOT_ENOUGH;
-				file.close();
+				filePath.close();
 				return;
 			}
 		}
 
-		file.close();
+		filePath.close();
 
 		// 5. 성공 로그 출력 (파일명만 추출하여 출력)
-		std::string successMsg = "CSV Exported to: " + p.filename().string();
+		successMsg = "CSV Exported to: " + tempPath.filename().string();
 		this->add_log("SYS", successMsg.c_str());
 	}
 	catch (const std::exception& e) {
@@ -204,8 +214,7 @@ void analyzerModel::export_csv(const std::string& path)
 	}
 }
 
-// ... (이하 로그, Tx버퍼, 상태, 가짜데이터 로직은 이전과 100% 동일) ...
-
+/*---- U1 출력용 + CSV 출력용 로깅 ----*/
 void analyzerModel::add_log(const char* prefix, const char* msg) 
 {
 	std::string log_str = std::string("[") + prefix + "]: " + msg;
