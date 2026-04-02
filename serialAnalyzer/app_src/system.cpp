@@ -32,6 +32,7 @@ analyzerSys::~analyzerSys()
 bool analyzerSys::init(void)
 {
 	CTRL_errcode tempCode;
+	ImGuiWindowFlags dashFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 
 	// 1. 백엔드 및 DX11 초기화
 	if (this->ctrl.begin(nullptr) == false)
@@ -47,7 +48,6 @@ bool analyzerSys::init(void)
 	this->ctrl.set_WindowClr(MAIN_WND_BACK_CLR_RGB);
 
 	// 3. 메인 대쉬보드 창 설정
-	ImGuiWindowFlags dashFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 	this->view.set_mainDash_window(ImVec2(0, 0), ImVec2(720, 480), "MainDash", dashFlags);
 
 	return true;
@@ -64,6 +64,7 @@ void analyzerSys::update_errcode(void)
 	tempCode2 = this->serial.get_errCode();
 	tempCode3 = this->model.get_errCode();
 
+	// 1. 에러코드 확인 (우선순위: View > Serial > Model)
 	if (tempCode != VIEW_RUN_ERR_NONE) {
 		this->g_errCode = (SysErrCode)(tempCode + SYSTEM_VIEW_ERR_OFFSET);
 		this->err_startTime = (float)ImGui::GetTime();
@@ -78,7 +79,7 @@ void analyzerSys::update_errcode(void)
 	}
 	else;
 
-	// 3. 에러가 떠있는 상태이고, 발생한 지 5.0초가 지났다면 글로벌 에러 해제
+	// 2. 에러가 떠있는 상태이고, 발생한 지 5.0초가 지났다면 글로벌 에러 해제
 	if (this->g_errCode != G_ERR_NONE)
 	{
 		dt = (float)ImGui::GetTime() - this->err_startTime;
@@ -91,12 +92,14 @@ void analyzerSys::update_errcode(void)
 void analyzerSys::run(void)
 {
 	std::string rxData;
+
+	// 1. 메인 루프 시작 (윈도우 메시지 처리( X표시 및 최소화) 및 화면 업데이트)
 	while (this->ctrl.stillRunning() == true)
 	{
 		float dt = this->ctrl.get_deltaTime();
-		this->model.add_elapsedTime(dt); // 시간 누적
+		this->model.add_elapsedTime(dt); 
 
-		// 1. 데이터 업데이트
+		// 2. 데이터 업데이트
 #if(ANL_RUN_MODE == ANL_DEBUG_MODE)
 		rxData = this->model.update_fakeData(this->ctrl.get_deltaTime());
 		this->model.parse_teleplot_data(rxData);
@@ -104,25 +107,25 @@ void analyzerSys::run(void)
 		this->model.add_log_with_time(this->model.get_elapsedTime(), rxData);
 #else
 		rxData = this->serial.readPendings();
-		if (!rxData.empty()) 
+
+		// 3. 수신된 데이터가 있다면 기록으로 추가 -> U1 로깅, CSV 기록용 로깅(시간 데이터), 그래프용 파싱후 도메인/값 로깅
+		if (rxData.empty() == false) 
 		{
-			// 1.1 로그창 출력 (선택 사항)
 			this->model.add_log("RX", rxData.c_str());
 
-			// 1.2 모델 내부에 파싱 지시 -> 자동으로 맵에 쌓임
 			this->model.parse_teleplot_data(rxData);
 		}
 #endif
-		// 2. 화면 그리기 시작
+		// 4. 화면 그리기 시작
 		this->ctrl.BeginFrame();
 
-		// 3. 레이아웃 렌더링
+		// 5. 레이아웃 렌더링
 		this->view.layout(MainLayout);
 
-		// 4. 에러코드 업데이트
+		// 6. 에러코드 업데이트
 		this->update_errcode();
 
-		// 5. 화면 출력
+		// 7. 화면 출력
 		this->ctrl.EndFrame();
 	}
 }
