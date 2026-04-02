@@ -40,7 +40,7 @@ public:
 	void close();
 
 	void write(const std::string& data);
-	std::string readPending(); // 수신된 데이터를 파서에게 넘겨줌
+	std::string readPendings(); // 수신된 데이터를 파서에게 넘겨줌
 
 	bool is_opened();
 	SERIAL_ErrCode get_errCode();

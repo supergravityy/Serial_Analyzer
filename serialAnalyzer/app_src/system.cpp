@@ -103,7 +103,7 @@ void analyzerSys::run(void)
 		this->model.add_log("RX", rxData.c_str());
 		this->model.add_log_with_time(this->model.get_elapsedTime(), rxData);
 #else
-		rxData = this->serial.readPending();
+		rxData = this->serial.readPendings();
 		if (!rxData.empty()) 
 		{
 			// 1.1 로그창 출력 (선택 사항)

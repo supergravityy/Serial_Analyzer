@@ -26,7 +26,7 @@ analyzerSerial::~analyzerSerial()
     close();
 }
 
-// 1. 포트 목록 가져오기 (Registry 기반)
+/*---- 1. 포트 목록 가져오기(Registry 기반) ----*/ 
 std::vector<std::string> analyzerSerial::get_ports(void)
 {
     std::vector<std::string> portList;
@@ -69,37 +69,48 @@ static bool check_open_paras(unsigned int baud, unsigned int data, unsigned int 
     return true;
 }
 
-// 2. 시리얼 포트 열기 및 설정
+/*---- 2. 시리얼 포트 열기 및 설정 ----*/
 bool analyzerSerial::open(const char* portName, unsigned int baud, unsigned int data,
     unsigned int stop, unsigned int parity)
 {
-    DCB dcb = { 0 };
+    DCB comm_configs = { 0 };
     std::string fullPath = "";
     COMMTIMEOUTS timeouts = { 0 };
-
+    auto availablePorts = get_ports();
+    bool exists = false;
+    /*-----------------------------*/
     // 1. 파라미터 유효성 검사
+    /*-----------------------------*/
     if (check_open_paras(baud, data, stop, parity) == false)
     {
         this->errCode = SERIAL_ERR_INIT_INVALID_SPEC;
         return false;
     }
 
+    /*-----------------------------*/
     // 2. 포트 존재 여부 사전 체크 (먹통 방지 핵심)
-    auto availablePorts = get_ports();
-    bool exists = false;
-    for (const auto& p : availablePorts) {
-        if (p == portName) { exists = true; break; }
+    /*-----------------------------*/
+    for (const auto& availPort : availablePorts) 
+    {
+        if (availPort == portName) 
+        { 
+            exists = true; 
+            break; 
+        }
     }
 
-    if (!exists) {
+    if (exists == false) 
+    {
         this->errCode = SERIAL_ERR_INIT_CANT_OPEN; // 목록에 없으면 즉시 에러 리턴
         return false;
     }
 
-    // 3. 이미 열려있다면 닫고 시작 (close 내부에서 join이 일어나므로 주의)
-    if (this->isOpened == true) close();
+	if (this->isOpened == true) // 이미 열려 있는 상태라면 중복 실행 방지
+        this->close();
 
+    /*-----------------------------*/
     // 4. 핸들 생성
+    /*-----------------------------*/
     fullPath = "\\\\.\\";
     fullPath += portName;
 
@@ -111,25 +122,33 @@ bool analyzerSerial::open(const char* portName, unsigned int baud, unsigned int 
         return false;
     }
 
-    // --- 이후 설정 로직 ---
-    dcb.DCBlength = sizeof(DCB);
-    if (!GetCommState(this->hComm, &dcb)) { close(); return false; }
+    /*-----------------------------*/
+    // 5. 핸들 생성
+    /*-----------------------------*/
+    comm_configs.DCBlength = sizeof(DCB);
+    if (GetCommState(this->hComm, &comm_configs) == false) 
+    { 
+        this->close(); 
+        return false; 
+    }
 
-    dcb.BaudRate = baud;
-    dcb.ByteSize = (BYTE)data;
-    dcb.StopBits = (stop == 1) ? ONESTOPBIT : TWOSTOPBITS;
-    dcb.Parity = (BYTE)parity;
-    dcb.fBinary = TRUE;
-    dcb.fParity = (parity != NOPARITY);
+    comm_configs.BaudRate = baud;
+    comm_configs.ByteSize = (BYTE)data;
+    comm_configs.StopBits = (stop == 1) ? ONESTOPBIT : TWOSTOPBITS;
+    comm_configs.Parity = (BYTE)parity;
+    comm_configs.fBinary = TRUE;
+    comm_configs.fParity = (parity != NOPARITY);
 
-    if (!SetCommState(hComm, &dcb)) {
+    if (SetCommState(hComm, &comm_configs) == false) {
         this->errCode = SERIAL_ERR_RUN_COMM_FAIL;
-        close();
+        this->close();
         return false;
     }
 
-    // 타임아웃 설정을 0으로 잡으면 데이터가 없어도 즉시 리턴하여 스레드 응답성을 높입니다.
-    timeouts.ReadIntervalTimeout = MAXDWORD; // 핵심: 블로킹 방지
+    /*-----------------------------*/
+    // 5. 타임아웃 설정 -> 논블로킹
+    /*-----------------------------*/
+    timeouts.ReadIntervalTimeout = MAXDWORD; // 타임아웃 설정을 0으로 잡으면 데이터가 없어도 즉시 리턴 -> 논블로킹 설정
     timeouts.ReadTotalTimeoutConstant = 0;
     timeouts.ReadTotalTimeoutMultiplier = 0;
     timeouts.WriteTotalTimeoutConstant = 500;
@@ -144,10 +163,11 @@ bool analyzerSerial::open(const char* portName, unsigned int baud, unsigned int 
     return true;
 }
 
+/*---- 3. 시리얼 포트 닫기 및 자원해제 ----*/
 void analyzerSerial::close()
 {
     // 이미 닫혀 있는 상태라면 중복 실행 방지
-    if (!this->isOpened == false && this->hComm == INVALID_HANDLE_VALUE) return;
+    if (this->isOpened == false && this->hComm == INVALID_HANDLE_VALUE) return;
 
     // 1. 스레드 종료 신호 및 상태 변경
     memset(this->portName, 0, SERIAL_PORTNAME_LEN);
@@ -171,7 +191,7 @@ void analyzerSerial::close()
         this->hComm = INVALID_HANDLE_VALUE;
     }
 
-    // 4. 버퍼 비우기 (안전하게 Mutex 사용)
+    // 4. 버퍼 비우기 (Mutex 사용)
     {
         std::lock_guard<std::mutex> lock(this->mtx);
         this->rxBuffer.clear();
@@ -190,6 +210,7 @@ bool analyzerSerial::is_opened(void)
     return this->isOpened;
 }
 
+/*---- 4. 동기식 쓰기 수행 ----*/
 void analyzerSerial::write(const std::string& data)
 {
     if (!this->isOpened || this->hComm == INVALID_HANDLE_VALUE) return;
@@ -202,66 +223,67 @@ void analyzerSerial::write(const std::string& data)
     }
 }
 
-std::string analyzerSerial::readPending()
+/*---- 5. 동기식 쓰기 수행 ----*/
+std::string analyzerSerial::readPendings()
 {
-    // 스레드간 경합 방지를 위해 Lock
+    // 1. 스레드간 경합 방지를 위해 Lock
     std::lock_guard<std::mutex> lock(this->mtx);
     std::string temp;
 
-    if (this->rxBuffer.empty()) return "";
+    if (this->rxBuffer.empty()) 
+        return "";
 
-    // 현재까지 쌓인 문자열을 복사한 뒤 원본은 비움
+    // 2. 현재까지 쌓인 문자열을 복사한 뒤 원본은 비움
     temp = this->rxBuffer;
     this->rxBuffer.clear();
 
     return temp;
 }
 
+/*---- 6. 수신 스레드 ----*/
 void analyzerSerial::rxWorker()
 {
     DWORD bytesRead = 0;
     long long elapsedTime = 0;
     this->last_rx_time = std::chrono::steady_clock::now();
 
-    while (!this->exitThread)
+    while (this->exitThread == false)
     {
         this->current_time = std::chrono::steady_clock::now();
-        // ReadFile 시도 (Non-blocking 설정 덕분에 데이터가 없으면 즉시 반환됨)
+
+        // 1. 버퍼로 읽기 시도 (Non-blocking 설정 덕분에 데이터가 없으면 즉시 반환됨)
         if (ReadFile(this->hComm, this->thrd_Buffer, SERIAL_THRD_BUFF_SIZE - 1, &bytesRead, NULL))
         {
-            if (bytesRead > 0)
+            if (bytesRead > 0) // 2. 가져온 데이터가 있으면 공용 버퍼에 추가 (Lock 필수)
             {
-                // 데이터 수신 시 공용 버퍼에 추가 (Lock 필수)
                 std::lock_guard<std::mutex> lock(this->mtx);
                 this->rxBuffer.append(this->thrd_Buffer, bytesRead);
                 memset(this->thrd_Buffer, 0, SERIAL_THRD_BUFF_SIZE);
 
+				// 수신 성공 시 마지막 수신 시간 업데이트
                 this->last_rx_time = std::chrono::steady_clock::now();
             }
-            else
+			else // 2.1 데이터가 없으면 타임아웃 검사
             {
                 elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>
-                    (current_time - last_rx_time).count();
+                    (this->current_time - this->last_rx_time).count();
 
-                // 읽기 실패 시 에러 코드 업데이트
+				// 3. 읽기 실패 감지 -> 타임아웃 발생 여부 판단
                 if (elapsedTime > SERIAL_RX_TIMEOUT_MS)
                 {
-                    // 에러 코드를 타임아웃으로 설정
                     this->errCode = SERIAL_ERR_RUN_RX_TIMEOUT;
 
-                    // [중요] 타임아웃 에러를 발생시킨 후 타이머를 다시 리셋
-                    // 이렇게 안 하면 1ms마다 무한정 에러를 뿜어내게 됨
-                    last_rx_time = current_time;
+                    // [중요] 타임아웃 에러를 발생시킨 후 타이머를 다시 리셋 -> 이렇게 안 하면 1ms마다 무한정 에러 폭발
+                    this->last_rx_time = this->current_time;
                 }
             }
         }
-        else
+        else // 2.1 케이블이 뽑히거나 OS 단에서 포트가 날아감
         {
-            // [치명적 오류] 케이블이 뽑히거나 OS 단에서 포트가 날아감
             this->errCode = SERIAL_ERR_RUN_RX_FAIL;
         }
 
-        // CPU 과부하 방지를 위한 미세 대기 (임베디드 통신 속도 고려)
+        // 4. CPU 과부하 방지를 위한 1ms 대기 (임베디드 통신 속도 고려)
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
