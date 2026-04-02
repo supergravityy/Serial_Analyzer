@@ -80,7 +80,7 @@ void analyzerView::childWindow(void (*CBFunc)(void), const char* childID, ImVec2
 	}
 	else
 	{
-		ImGui::BeginChild(childID, windowSize, windowFlg);
+		ImGui::BeginChild(childID, windowSize, true, windowFlg);
 		this->windowCursor_pos = ImGui::GetCursorPos();
 		this->childCnt++;
 		this->childWindowID.push_back(childID);
@@ -98,7 +98,7 @@ int analyzerView::get_childCnt(void)
 	return this->childCnt;
 }
 
-VIEW_errCode analyzerView::get_errCode(void) // 읽음과 동시에 초기화 (Consume)
+VIEW_errCode analyzerView::get_errCode(void) // 읽음과 동시에 초기화 (에러 Consume)
 {
 	VIEW_errCode temp = this->errCode;
 	this->errCode = VIEW_RUN_ERR_NONE;
